@@ -1,14 +1,18 @@
 
 .idea/
 
-src/terraform/standalone/.ssh/
+*/.ssh/
 
-src/terraform/standalone/.terraform/
+*/terraform/
 
-src/terraform/standalone/.terraform.lock.hcl
+*/.terraform.lock.hcl
 
-src/terraform/standalone/inventory.ini
+*/inventory.ini
 
-src/terraform/standalone/terraform.tfstate.backup
+*/terraform.tfstate.backup
 
-src/terraform/standalone/terraform.tfstate
+*/terraform.tfstate
+
+*/.DS_Store
+
+.DS_Store
