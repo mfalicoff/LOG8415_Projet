@@ -1,0 +1,119 @@
+- hosts: aws_ec2_manager
+  become: yes
+  vars:
+    manager_ip: "{{ hostvars['aws_ec2_manager1']['aws_ec2_manager1_private'] }}"
+    worker_one: "{{ hostvars['aws_ec2_worker1']['aws_ec2_worker1_private'] }}"
+    worker_two: "{{ hostvars['aws_ec2_worker2']['aws_ec2_worker2_private'] }}"
+    worker_three: "{{ hostvars['aws_ec2_worker3']['aws_ec2_worker3_private'] }}"
+
+  tasks:
+
+    - name: Update and upgrade packages
+      apt:
+        update_cache: yes
+        upgrade: yes
+
+    - name: Install dependencies
+      apt:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - libncurses5
+
+    - name: Create shared directory
+      file:
+        path: /home/shared
+        state: directory
+
+    - name: Make shared directory available to all users
+      file:
+        path: /home/shared
+        mode: '0777'
+        recurse: yes
+
+    - name: Download MySQL Cluster Management Server
+      command: "wget https://dev.mysql.com/get/Downloads/MySQL-Cluster-7.6/mysql-cluster-community-management-server_7.6.6-1ubuntu18.04_amd64.deb -P /home/shared/"
+
+    - name: Install MySQL Cluster Management Server
+      apt:
+        deb: "/home/shared/mysql-cluster-community-management-server_7.6.6-1ubuntu18.04_amd64.deb"
+      become: true
+
+    - name: Create MySQL Cluster file directory
+      file:
+        path: "/var/lib/mysql-cluster"
+        state: directory
+
+    - name: Create MySQL cluster config file if not exists
+      command: touch /var/lib/mysql-cluster/config.ini
+      args:
+        creates: /var/lib/mysql-cluster/config.ini
+
+    - name: Create MySQL Cluster file
+      become: true
+      blockinfile:
+        path: "/var/lib/mysql-cluster/config.ini"
+        content: |
+          [ndbd default]
+          NoOfReplicas=3
+
+          [ndb_mgmd]
+          hostname={{ manager_ip }}
+          NodeId=1
+          datadir=/var/lib/mysql-cluster
+
+          [ndbd]
+          hostname={{ worker_one }}
+          NodeId=2
+          datadir=/usr/local/mysql/data
+
+          [ndbd]
+          hostname={{ worker_two }}
+          NodeId=3
+          datadir=/usr/local/mysql/data
+
+          [ndbd]
+          hostname={{ worker_three }}
+          NodeId=4
+          datadir=/usr/local/mysql/data
+
+          [mysqld]
+          hostname={{ manager_ip }}
+
+    - name: Kill the manager before starting it as a service
+      shell: "pkill -f ndb_mgmd"
+      ignore_errors: yes
+
+    - name: Setup ndb_mgmd service
+      copy:
+        content: |
+          [Unit]
+          Description=MySQL NDB Cluster Management Server
+          After=network.target auditd.service
+
+          [Service]
+          Type=forking
+          ExecStart=/usr/sbin/ndb_mgmd -f /var/lib/mysql-cluster/config.ini --ndb-nodeid=1
+          ExecReload=/bin/kill -HUP $MAINPID
+          KillMode=process
+          Restart=on-failure
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: "/etc/systemd/system/ndb_mgmd.service"
+
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: yes
+
+    - name: Enable and start ndb_mgmd service
+      service:
+        name: ndb_mgmd
+        enabled: yes
+        state: started
+
+          
+          
+
+
+

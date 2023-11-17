@@ -1,0 +1,18 @@
+[aws_ec2_manager]
+%{ for index, addr in manager_ip_addrs_public ~}
+aws_ec2_manager${index + 1} ansible_host=${addr} aws_ec2_manager${index + 1}_private=${manager_ip_addrs_private[index]}
+%{ endfor ~}
+
+[aws_ec2_manager:vars]
+ansible_ssh_user=ubuntu
+ansible_ssh_private_key_file=${ssh_keyfile}
+
+[aws_ec2_workers]
+%{ for index, addr in workers_ip_addrs_public ~}
+aws_ec2_worker${index + 1} ansible_host=${addr} aws_ec2_worker${index + 1}_private=${workers_ip_addrs_private[index]}
+%{ endfor ~}
+
+
+[aws_ec2_workers:vars]
+ansible_ssh_user=ubuntu
+ansible_ssh_private_key_file=${ssh_keyfile}
