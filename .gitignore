@@ -1,0 +1,16 @@
+
+.idea/
+
+*.ssh/
+
+*.terraform/
+
+*.terraform.lock.hcl
+
+*inventory.ini
+
+*terraform.tfstate.backup
+
+*terraform.tfstate
+
+*.DS_Store
