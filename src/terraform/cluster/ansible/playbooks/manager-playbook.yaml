@@ -19,6 +19,8 @@
         state: present
       with_items:
         - libncurses5
+        - sysbench
+        - python3-pymysql
 
     - name: Create shared directory
       file:
@@ -191,6 +193,7 @@
 
     - name: Create database, user, and grant privileges
       shell: |
+        mysql -u root -proot -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'root';"
         mysql -u root -proot -e "CREATE USER 'ubuntu'@'localhost' IDENTIFIED BY 'root';"
         mysql -u root -proot -e "GRANT ALL PRIVILEGES ON *.* TO 'ubuntu'@'localhost' WITH GRANT OPTION;"
         mysql -u root -proot -e "CREATE USER 'ubuntu'@'%' IDENTIFIED BY 'root';"
@@ -242,4 +245,19 @@
        login_password: root
        login_db: sakila
        query: SELECT COUNT(*) FROM film_text
+
+    - name: Prepare statement with sysbench
+      command: "sysbench oltp_read_write --table-size=1000000 --mysql-db=sakila --mysql-user=root --mysql-password=root prepare"
+
+    - name: Execute performance test
+      shell: "sysbench oltp_read_write --table-size=1000000 --mysql-db=sakila --mysql-user=root --mysql-password=root --threads=6 --time=60 --max-requests=0 run > /home/shared/cluster-result.log"
+
+    - name: Display testbench results
+      command: "cat /home/shared/cluster-result.log"
+
+    - name: Fetch testbench result log to local machine
+      fetch:
+        src: "/home/shared/cluster-result.log"
+        dest: "/Users/mazilious/git/LOG8415_Projet/src/benchmarks/mysql/"
+        flat: yes
 

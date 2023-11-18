@@ -1,7 +1,17 @@
-output "server-data" {
+output "manager-data" {
   value = {
     ip_address  = aws_instance.cluster_manager.public_ip
     public_dns = aws_instance.cluster_manager.public_dns
   }
-  description = "The public IP and DNS of the servers"
+  description = "The public IP and DNS of the manager"
+}
+
+output "worker-data" {
+  value = [
+    for instance in aws_instance.cluster_workers : {
+      ip_address  = instance.public_ip
+      public_dns = instance.public_dns
+    }
+  ]
+  description = "The public IP and DNS of the workers"
 }

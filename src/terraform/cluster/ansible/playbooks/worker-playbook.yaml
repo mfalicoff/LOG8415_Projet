@@ -20,6 +20,8 @@
       with_items:
         - libncurses5
         - libclass-methodmaker-perl
+        - sysbench
+        - python3-pymysql
 
     - name: Create shared directory
       file:
