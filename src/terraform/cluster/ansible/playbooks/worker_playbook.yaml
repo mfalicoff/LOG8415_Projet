@@ -1,104 +1,91 @@
-- hosts: aws_ec2_worker
+- hosts: aws_ec2_workers
   become: yes
+  vars:
+    manager_ip: "{{ hostvars['aws_ec2_manager1']['aws_ec2_manager1_private'] }}"
+    worker_one: "{{ hostvars['aws_ec2_worker1']['aws_ec2_worker1_private'] }}"
+    worker_two: "{{ hostvars['aws_ec2_worker2']['aws_ec2_worker2_private'] }}"
+    worker_three: "{{ hostvars['aws_ec2_worker3']['aws_ec2_worker3_private'] }}"
+
   tasks:
+
     - name: Update and upgrade packages
       apt:
         update_cache: yes
         upgrade: yes
 
-    - name: Install required dependencies
+    - name: Install dependencies
       apt:
         name: "{{ item }}"
         state: present
       with_items:
-        - mysql-server
-        - sysbench
-        - python3-pymysql
-
-    - name: Ensure MySQL server is running
-      service:
-        name: mysql
-        state: started
-
-    - name: Create root user with password
-      shell: |
-        mysql -u root -proot -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'root';"
-
-    - name: Create database, user, and grant privileges
-      shell: |
-        mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS projet;"
-        mysql -u root -proot -e "CREATE USER IF NOT EXISTS 'ubuntu'@'localhost' IDENTIFIED BY 'ubuntu';"
-        mysql -u root -proot -e "GRANT ALL PRIVILEGES ON *.* TO 'ubuntu'@'localhost' WITH GRANT OPTION;"
-        mysql -u root -proot -e "FLUSH PRIVILEGES;"
+        - libncurses5
+        - libclass-methodmaker-perl
 
     - name: Create shared directory
       file:
         path: /home/shared
         state: directory
 
-    - name: Set permissions for shared directory
+    - name: Make shared directory available to all users
       file:
         path: /home/shared
         mode: '0777'
         recurse: yes
 
-    - name: Download Sakila database example using curl
-      command: "curl -o /home/shared/sakila-db.tar.gz https://downloads.mysql.com/docs/sakila-db.tar.gz"
+    - name: Download MySQL Cluster Management Server
+      command: "wget https://dev.mysql.com/get/Downloads/MySQL-Cluster-7.6/mysql-cluster-community-data-node_7.6.6-1ubuntu18.04_amd64.deb -P /home/shared/"
 
-    - name: Extract Sakila database
-      unarchive:
-        src: "/home/shared/sakila-db.tar.gz"
-        dest: "/home/shared/"
-        remote_src: yes
+    - name: Install MySQL Cluster Management Server
+      apt:
+        deb: "/home/shared/mysql-cluster-community-data-node_7.6.6-1ubuntu18.04_amd64.deb"
+      become: true
 
-    - name: Import Sakila schema
-      community.mysql.mysql_db:
-       login_user: root
-       login_password: root
-       state: import
-       name: sakila
-       target: /home/shared/sakila-db/sakila-schema.sql
+    - name: Create Data notes configuration
+      command: "touch /etc/my.cnf"
+      become: true
 
-    - name: Import Sakila data
-      community.mysql.mysql_db:
-       login_user: root
-       login_password: root
-       state: import
-       name: sakila
-       target: /home/shared/sakila-db/sakila-data.sql
+    - name: Configure Data notes
+      blockinfile:
+        path: "/etc/my.cnf"
+        content: |
+         [mysql_cluster]
+          # Options for NDB Cluster processes:
+          ndb-connectstring={{ manager_ip }}  # location of cluster manager
+          
+    - name: Create node data directory
+      file:
+        path: /usr/local/mysql/data
+        state: directory
 
-    - name: Show full tables
-      community.mysql.mysql_query:
-       login_user: root
-       login_password: root
-       login_db: sakila
-       query: SHOW FULL TABLES
+    - name: Kill the manager before starting it as a service
+      shell: "pkill -f ndb_mgmd"
+      ignore_errors: yes
 
-    - name: Count films
-      community.mysql.mysql_query:
-       login_user: root
-       login_password: root
-       login_db: sakila
-       query: SELECT COUNT(*) FROM film
+    - name: Setup ndb_mgmd service
+      copy:
+        content: |
+          [Unit]
+          Description=MySQL NDB Data Node Daemon
+          After=network.target auditd.service
+          
+          [Service]
+          Type=forking
+          ExecStart=/usr/sbin/ndbd
+          ExecReload=/bin/kill -HUP \$MAINPID
+          KillMode=process
+          Restart=on-failure
+          
+          [Install]
+          WantedBy=multi-user.target
+        dest: "/etc/systemd/system/ndb_mgmd.service"
 
-    - name: Count film texts
-      community.mysql.mysql_query:
-       login_user: root
-       login_password: root
-       login_db: sakila
-       query: SELECT COUNT(*) FROM film_text
 
-    - name: Prepare statement with sysbench
-      command: "sysbench oltp_read_write --table-size=1000000 --mysql-db=sakila --mysql-user=root --mysql-password=root prepare"
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: yes
 
-    - name: Execute performance test
-      shell: "sysbench oltp_read_write --table-size=1000000 --mysql-db=sakila --mysql-user=root --mysql-password=root --threads=6 --time=60 --max-requests=0 run > /home/shared/standalone-result.log"
-
-    - name: Display testbench results
-      command: "cat /home/shared/standalone-result.log"
-
-    - name: Fetch testbench result log to local machine
-      fetch:
-        src: "/home/shared/standalone-result.log"
-        dest: "/Users/mazilious/git/LOG8415_Projet/src/benchmarks/mysql/"
-        flat: yes
+    - name: Enable and start ndb_mgmd service
+      service:
+        name: ndb_mgmd
+        enabled: yes
+        state: started
