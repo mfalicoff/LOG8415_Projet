@@ -15,6 +15,16 @@ cluster:
 	@cd ./cluster && \
 		ansible-playbook -i ./ansible/inventory.ini ./ansible/playbooks/manager-playbook.yaml
 
+cluster-proxy:
+	@echo "Creating MySQL cluster..."
+	@cd ./cluster && \
+		terraform init && \
+		terraform plan && \
+		terraform apply -auto-approve
+	@echo "Configuring proxy instance with ansible..."
+	@cd ./cluster && \
+		ansible-playbook -i ./ansible/inventory.ini ./ansible/playbooks/proxy-playbook.yaml
+
 cluster-destroy:
 	@echo "Destroying MySQL cluster..."
 	@cd ./cluster && \

@@ -1,0 +1,23 @@
+- hosts: aws_ec2_proxy
+  become: yes
+  tasks:
+    - name: Update and upgrade packages
+      apt:
+        update_cache: yes
+        upgrade: yes
+
+    - name: Install Nginx
+      apt:
+        name: nginx
+        state: present
+
+    - name: Start Nginx service
+      service:
+        name: nginx
+        state: started
+
+    - name: Ensure Nginx is enabled and starts on boot
+      systemd:
+        name: nginx
+        enabled: yes
+
