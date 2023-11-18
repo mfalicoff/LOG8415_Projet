@@ -14,3 +14,5 @@
 *terraform.tfstate
 
 *.DS_Store
+
+*.terraform.tfstate.lock.info

@@ -3,6 +3,6 @@
 ${addr}
 %{ endfor ~}
 
-[aws_ec2:vars]
+[aws_ec2_standalone:vars]
 ansible_ssh_user=ubuntu
 ansible_ssh_private_key_file=${ssh_keyfile}

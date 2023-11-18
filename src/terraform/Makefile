@@ -1,23 +1,37 @@
-.PHONY: all init plan apply destroy ansible
+SHELL := /bin/bash
 
-all: init plan apply ansible
+.PHONY: cluster standalone cluster-destroy standalone-destroy
 
-init:
-	cd standalone && \
-	terraform init
+cluster:
+	@echo "Creating MySQL cluster..."
+	@cd ./cluster && \
+		terraform init && \
+		terraform plan && \
+		terraform apply -auto-approve
+	@echo "Configuring workers MySQL instance with ansible..."
+	@cd ./cluster && \
+		ansible-playbook -i ./ansible/inventory.ini ./ansible/playbooks/worker-playbook.yaml
+	@echo "Configuring manager MySQL instance with ansible..."
+	@cd ./cluster && \
+		ansible-playbook -i ./ansible/inventory.ini ./ansible/playbooks/manager-playbook.yaml
 
-plan:
-	cd standalone && \
-	terraform plan
+cluster-destroy:
+	@echo "Destroying MySQL cluster..."
+	@cd ./cluster && \
+		terraform destroy -auto-approve
 
-apply:
-	cd standalone && \
-	terraform apply -auto-approve
+standalone:
+	@echo "Creating standalone MySQL instance..."
+	@cd ./standalone && \
+		terraform init && \
+		terraform plan && \
+		terraform apply -auto-approve
+	@echo "Configuring MySQL instance with ansible..."
+	@cd ./standalone && \
+		ansible-playbook -i ./ansible/inventory.ini ./ansible/playbooks/playbook.yaml
 
-destroy:
-	cd standalone && \
-	terraform destroy -auto-approve
+standalone-destroy:
+	@echo "Destroying standalone MySQL instance..."
+	@cd ./standalone && \
+		terraform destroy -auto-approve
 
-ansible:
-	cd standalone/ansible && \
-	ansible-playbook playbook.yaml

@@ -1,0 +1,263 @@
+- hosts: aws_ec2_manager
+  become: yes
+  vars:
+    manager_ip: "{{ hostvars['aws_ec2_manager1']['aws_ec2_manager1_private'] }}"
+    worker_one: "{{ hostvars['aws_ec2_worker1']['aws_ec2_worker1_private'] }}"
+    worker_two: "{{ hostvars['aws_ec2_worker2']['aws_ec2_worker2_private'] }}"
+    worker_three: "{{ hostvars['aws_ec2_worker3']['aws_ec2_worker3_private'] }}"
+
+  tasks:
+
+    - name: Update and upgrade packages
+      apt:
+        update_cache: yes
+        upgrade: yes
+
+    - name: Install dependencies
+      apt:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - libncurses5
+        - sysbench
+        - python3-pymysql
+
+    - name: Create shared directory
+      file:
+        path: /home/shared
+        state: directory
+
+    - name: Make shared directory available to all users
+      file:
+        path: /home/shared
+        mode: '0777'
+        recurse: yes
+
+    - name: Download MySQL Cluster Management Server
+      command: "wget https://dev.mysql.com/get/Downloads/MySQL-Cluster-7.6/mysql-cluster-community-management-server_7.6.6-1ubuntu18.04_amd64.deb -P /home/shared/"
+
+    - name: Install MySQL Cluster Management Server
+      apt:
+        deb: "/home/shared/mysql-cluster-community-management-server_7.6.6-1ubuntu18.04_amd64.deb"
+      become: true
+
+    - name: Create MySQL Cluster file directory
+      file:
+        path: "/var/lib/mysql-cluster"
+        state: directory
+
+    - name: Create MySQL cluster config file if not exists
+      command: touch /var/lib/mysql-cluster/config.ini
+      args:
+        creates: /var/lib/mysql-cluster/config.ini
+
+    - name: Create MySQL Cluster file
+      become: true
+      blockinfile:
+        path: "/var/lib/mysql-cluster/config.ini"
+        content: |
+          [ndbd default]
+          NoOfReplicas=3
+
+          [ndb_mgmd]
+          hostname={{ manager_ip }}
+          NodeId=1
+          datadir=/var/lib/mysql-cluster
+
+          [ndbd]
+          hostname={{ worker_one }}
+          NodeId=2
+          datadir=/usr/local/mysql/data
+
+          [ndbd]
+          hostname={{ worker_two }}
+          NodeId=3
+          datadir=/usr/local/mysql/data
+
+          [ndbd]
+          hostname={{ worker_three }}
+          NodeId=4
+          datadir=/usr/local/mysql/data
+
+          [mysqld]
+          hostname={{ manager_ip }}
+
+    - name: Kill the manager before starting it as a service
+      shell: "pkill -f ndb_mgmd"
+      ignore_errors: yes
+
+    - name: Setup ndb_mgmd service
+      copy:
+        content: |
+          [Unit]
+          Description=MySQL NDB Cluster Management Server
+          After=network.target auditd.service
+
+          [Service]
+          Type=forking
+          ExecStart=/usr/sbin/ndb_mgmd -f /var/lib/mysql-cluster/config.ini --ndb-nodeid=1
+          ExecReload=/bin/kill -HUP $MAINPID
+          KillMode=process
+          Restart=on-failure
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: "/etc/systemd/system/ndb_mgmd.service"
+
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: yes
+
+    - name: Enable and start ndb_mgmd service
+      service:
+        name: ndb_mgmd
+        enabled: yes
+        state: started
+
+    - name: Create Install Directory
+      file:
+        path: "/home/shared/install"
+        state: directory
+
+    - name: Download MySQL Cluster Server binary
+      command: "wget https://dev.mysql.com/get/Downloads/MySQL-Cluster-7.6/mysql-cluster_7.6.6-1ubuntu18.04_amd64.deb-bundle.tar -P /home/shared/"
+
+    - name: Extract MySQL Cluster Server binary
+      ansible.builtin.unarchive:
+        src: "/home/shared/mysql-cluster_7.6.6-1ubuntu18.04_amd64.deb-bundle.tar"
+        dest: "/home/shared/install"
+        remote_src: yes
+
+    - name: Install required dependencies
+      apt:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - libaio1
+        - libmecab2
+
+    - name: Install MySQL Cluster Management Server 1
+      apt:
+        deb: "{{ item }}"
+      with_items:
+        - "/home/shared/install/mysql-common_7.6.6-1ubuntu18.04_amd64.deb"
+        - "/home/shared/install/mysql-cluster-community-client_7.6.6-1ubuntu18.04_amd64.deb"
+        - "/home/shared/install/mysql-client_7.6.6-1ubuntu18.04_amd64.deb"
+      become: true
+
+    - name: Set debconf selections for MySQL server
+      debconf:
+        name: "{{ item.name }}"
+        question: "{{ item.question }}"
+        vtype: "{{ item.vtype }}"
+        value: "{{ item.value }}"
+      with_items:
+        - { name: "mysql-server", question: "mysql-server/mysql-server/root_password", vtype: "password", value: "root" }
+        - { name: "mysql-server", question: "mysql-server/mysql-server/root_password_again", vtype: "password", value: "root" }
+
+    - name: Install MySQL Cluster Management Server 2
+      apt:
+        deb: "{{ item }}"
+      with_items:
+        - "/home/shared/install/mysql-cluster-community-server_7.6.6-1ubuntu18.04_amd64.deb"
+        - "/home/shared/install/mysql-server_7.6.6-1ubuntu18.04_amd64.deb"
+      become: true
+
+    - name: Create MySQL Cluster conf file
+      become: true
+      command: "touch /etc/mysql/my.cnf"
+
+
+    - name: Configure MySQL options
+      blockinfile:
+        path: "/etc/mysql/my.cnf"
+        content: |
+          [mysqld]
+          ndbcluster
+          skip_ssl
+          bind-address = 0.0.0.0
+
+          [mysql_cluster]
+          ndb-connectstring={{ manager_ip }}
+
+    - name: Restart MySQL service
+      systemd:
+        name: mysql
+        state: restarted
+
+    - name: Enable and start MySQL service
+      service:
+        name: mysql
+        enabled: yes
+        state: started
+
+    - name: Create database, user, and grant privileges
+      shell: |
+        mysql -u root -proot -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'root';"
+        mysql -u root -proot -e "CREATE USER 'ubuntu'@'localhost' IDENTIFIED BY 'root';"
+        mysql -u root -proot -e "GRANT ALL PRIVILEGES ON *.* TO 'ubuntu'@'localhost' WITH GRANT OPTION;"
+        mysql -u root -proot -e "CREATE USER 'ubuntu'@'%' IDENTIFIED BY 'root';"
+        mysql -u root -proot -e "GRANT ALL PRIVILEGES ON *.* TO 'ubuntu'@'%' WITH GRANT OPTION;"
+        mysql -u root -proot -e "FLUSH PRIVILEGES;"
+          
+    - name: Download Sakila database example using curl
+      command: "curl -o /home/shared/sakila-db.tar.gz https://downloads.mysql.com/docs/sakila-db.tar.gz"
+
+    - name: Extract Sakila database
+      unarchive:
+        src: "/home/shared/sakila-db.tar.gz"
+        dest: "/home/shared/"
+        remote_src: yes
+
+    - name: Import Sakila schema
+      community.mysql.mysql_db:
+       login_user: root
+       login_password: root
+       state: import
+       name: sakila
+       target: /home/shared/sakila-db/sakila-schema.sql
+
+    - name: Import Sakila data
+      community.mysql.mysql_db:
+       login_user: root
+       login_password: root
+       state: import
+       name: sakila
+       target: /home/shared/sakila-db/sakila-data.sql
+
+    - name: Show full tables
+      community.mysql.mysql_query:
+       login_user: root
+       login_password: root
+       login_db: sakila
+       query: SHOW FULL TABLES
+
+    - name: Count films
+      community.mysql.mysql_query:
+       login_user: root
+       login_password: root
+       login_db: sakila
+       query: SELECT COUNT(*) FROM film
+
+    - name: Count film texts
+      community.mysql.mysql_query:
+       login_user: root
+       login_password: root
+       login_db: sakila
+       query: SELECT COUNT(*) FROM film_text
+
+    - name: Prepare statement with sysbench
+      command: "sysbench oltp_read_write --table-size=1000000 --mysql-db=sakila --mysql-user=root --mysql-password=root prepare"
+
+    - name: Execute performance test
+      shell: "sysbench oltp_read_write --table-size=1000000 --mysql-db=sakila --mysql-user=root --mysql-password=root --threads=6 --time=60 --max-requests=0 run > /home/shared/cluster-result.log"
+
+    - name: Display testbench results
+      command: "cat /home/shared/cluster-result.log"
+
+    - name: Fetch testbench result log to local machine
+      fetch:
+        src: "/home/shared/cluster-result.log"
+        dest: "/Users/mazilious/git/LOG8415_Projet/src/benchmarks/mysql/"
+        flat: yes
+
