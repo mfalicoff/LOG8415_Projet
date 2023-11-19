@@ -45,12 +45,31 @@ resource "aws_security_group" "cluster" {
 # Allow HTTP traffic from the broad internet to reach the ALB
 resource "aws_security_group_rule" "cluster_ingress" {
   type              = "ingress"
-  from_port         = 80
-  to_port           = 80
-  protocol          = "tcp"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
   source_security_group_id = aws_security_group.proxy.id
   security_group_id = aws_security_group.cluster.id
 }
+
+# Allow MySQL traffic from the broad internet to reach the ALB
+#resource "aws_security_group_rule" "cluster_ingress_mysql" {
+#  type                   = "ingress"
+#  from_port              = 3306
+#  to_port                = 3306
+#  protocol               = "tcp"
+#  source_security_group_id = aws_security_group.proxy.id
+#  security_group_id      = aws_security_group.cluster.id
+#}
+#
+#resource "aws_security_group_rule" "cluster_ingress_mysql-cluster" {
+#  type                      = "ingress"
+#  from_port                 = 1186
+#  to_port                   = 1186
+#  protocol                  = "tcp"
+#  source_security_group_id  = aws_security_group.proxy.id
+#  security_group_id         = aws_security_group.cluster.id
+#}
 
 # Allow all egress traffic
 resource "aws_security_group_rule" "cluster_egress" {

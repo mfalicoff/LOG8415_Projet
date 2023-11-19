@@ -21,8 +21,10 @@ resource "aws_key_pair" "aws_key" {
 
 resource "aws_instance" "proxy" {
   ami                    = data.aws_ami.ubuntu.id
-  instance_type          = "t2.micro"
+  instance_type          = "t2.large"
   vpc_security_group_ids = [aws_security_group.proxy.id]
+
+
 
   key_name = aws_key_pair.aws_key.key_name
 

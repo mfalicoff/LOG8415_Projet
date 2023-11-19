@@ -8,8 +8,12 @@
 
     - name: Install Nginx
       apt:
-        name: nginx
+        name: "{{ item }}"
         state: present
+      with_items:
+        - nginx
+        - python3
+        - python3-pip
 
     - name: Start Nginx service
       service:
@@ -20,4 +24,14 @@
       systemd:
         name: nginx
         enabled: yes
+
+    - name: Copy folder using copy module
+      ansible.builtin.copy:
+        src: "/Users/mazilious/git/LOG8415_Projet/src/terraform/cluster/.ssh"
+        dest: "/home/app/"
+
+    - name: Copy folder using copy module
+      ansible.builtin.copy:
+        src: "/Users/mazilious/git/LOG8415_Projet/src/apps/proxy/main.py"
+        dest: "/home/app/"
 
