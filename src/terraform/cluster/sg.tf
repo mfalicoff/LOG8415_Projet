@@ -43,6 +43,7 @@ resource "aws_security_group" "cluster" {
 }
 
 # Allow HTTP traffic from the broad internet to reach the ALB
+# TODO Change later to only allow traffic from the proxy
 resource "aws_security_group_rule" "cluster_ingress" {
   type              = "ingress"
   from_port         = 0
@@ -51,6 +52,15 @@ resource "aws_security_group_rule" "cluster_ingress" {
   cidr_blocks      = ["0.0.0.0/0"]
   security_group_id = aws_security_group.cluster.id
 }
+
+#resource "aws_security_group_rule" "cluster_ingress_internal" {
+#  type                     = "ingress"
+#  from_port                = 0
+#  to_port                  = 0
+#  protocol                 = "-1"
+#  source_security_group_id = aws_security_group.cluster.id
+#  security_group_id        = aws_security_group.cluster.id
+#}
 
 # Allow MySQL traffic from the broad internet to reach the ALB
 #resource "aws_security_group_rule" "cluster_ingress_mysql" {

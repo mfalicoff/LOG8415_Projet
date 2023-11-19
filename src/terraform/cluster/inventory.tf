@@ -5,7 +5,7 @@ resource "local_sensitive_file" "private_key" {
 }
 
 resource "local_file" "ansible_inventory" {
-  content = templatefile("ansible/inventory.tftpl", {
+  content = templatefile("templates/inventory.tftpl", {
     manager_ip_addrs_public = [aws_instance.cluster_manager.public_ip]
     manager_ip_addrs_private = [aws_instance.cluster_manager.private_ip]
     workers_ip_addrs_public = [for i in aws_instance.cluster_workers:i.public_ip]
