@@ -20,7 +20,6 @@ cluster:
 	@echo "Temporary setup for python proxy..."
 	@cd ../apps/proxy && \
 		pip freeze > requirements.txt
-		ansible-playbook -i ./ansible/inventory.ini ./ansible/playbooks/proxy-playbook.yaml
 	@cd ./cluster && \
 		ansible-playbook -i ./ansible/inventory.ini ./ansible/playbooks/proxy-playbook.yaml
 

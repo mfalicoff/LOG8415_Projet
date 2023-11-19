@@ -42,44 +42,36 @@ resource "aws_security_group" "cluster" {
   vpc_id      = data.aws_vpc.default.id
 }
 
-# Allow HTTP traffic from the broad internet to reach the ALB
-# TODO Change later to only allow traffic from the proxy
+# Allow HTTP traffic from the Proxy to the cluster
 resource "aws_security_group_rule" "cluster_ingress" {
   type              = "ingress"
   from_port         = 0
   to_port           = 0
   protocol          = "-1"
-  cidr_blocks      = ["0.0.0.0/0"]
+  ipv6_cidr_blocks  = ["::/0"]
   security_group_id = aws_security_group.cluster.id
+#  source_security_group_id = aws_security_group.proxy.id
 }
 
-#resource "aws_security_group_rule" "cluster_ingress_internal" {
-#  type                     = "ingress"
-#  from_port                = 0
-#  to_port                  = 0
-#  protocol                 = "-1"
-#  source_security_group_id = aws_security_group.cluster.id
-#  security_group_id        = aws_security_group.cluster.id
+#resource "aws_security_group_rule" "cluster_mysql" {
+#  type              = "ingress"
+#  from_port         = 3306
+#  to_port           = 3306
+#  protocol          = "tcp"
+##  cidr_blocks       = ["0.0.0.0/0"]
+#  security_group_id = aws_security_group.cluster.id
 #}
 
-# Allow MySQL traffic from the broad internet to reach the ALB
-#resource "aws_security_group_rule" "cluster_ingress_mysql" {
-#  type                   = "ingress"
-#  from_port              = 3306
-#  to_port                = 3306
-#  protocol               = "tcp"
-#  source_security_group_id = aws_security_group.proxy.id
-#  security_group_id      = aws_security_group.cluster.id
-#}
-#
-#resource "aws_security_group_rule" "cluster_ingress_mysql-cluster" {
-#  type                      = "ingress"
-#  from_port                 = 1186
-#  to_port                   = 1186
-#  protocol                  = "tcp"
-#  source_security_group_id  = aws_security_group.proxy.id
-#  security_group_id         = aws_security_group.cluster.id
-#}
+
+# Allow HTTP traffic from the cluster to the cluster
+resource "aws_security_group_rule" "cluster_ingress_internal" {
+  type                     = "ingress"
+  from_port                = 0
+  to_port                  = 0
+  protocol                 = "-1"
+  source_security_group_id = aws_security_group.cluster.id
+  security_group_id        = aws_security_group.cluster.id
+}
 
 # Allow all egress traffic
 resource "aws_security_group_rule" "cluster_egress" {

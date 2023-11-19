@@ -17,6 +17,12 @@
         dest: "/home/app/"
         mode: '0777'
 
+    - name: Replace line in Python script
+      lineinfile:
+        path: "/home/app/main.py"
+        regexp: '^load_dotenv\(".env.local"\)'
+        line: 'load_dotenv(".env.remote")'
+
     - name: Install Nginx
       apt:
         name: "{{ item }}"
