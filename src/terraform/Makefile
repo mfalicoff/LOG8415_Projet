@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: cluster standalone cluster-destroy standalone-destroy
+.PHONY: cluster standalone cluster-destroy standalone-destroy benchmark
 
 cluster:
 	@echo "Creating MySQL cluster..."
@@ -17,6 +17,10 @@ cluster:
 	@cd ./cluster && \
 		ansible-playbook -i ./ansible/inventory.ini ./ansible/playbooks/worker-playbook.yaml
 	@echo "Configuring proxy instance with ansible..."
+	@echo "Temporary setup for python proxy..."
+	@cd ../apps/proxy && \
+		pip freeze > requirements.txt
+		ansible-playbook -i ./ansible/inventory.ini ./ansible/playbooks/proxy-playbook.yaml
 	@cd ./cluster && \
 		ansible-playbook -i ./ansible/inventory.ini ./ansible/playbooks/proxy-playbook.yaml
 
@@ -27,6 +31,9 @@ cluster-proxy:
 		terraform plan && \
 		terraform apply -auto-approve
 	@echo "Configuring proxy instance with ansible..."
+	@echo "Temporary setup for python proxy..."
+	@cd ../apps/proxy && \
+		pip freeze > requirements.txt
 	@cd ./cluster && \
 		ansible-playbook -i ./ansible/inventory.ini ./ansible/playbooks/proxy-playbook.yaml
 
@@ -49,4 +56,16 @@ standalone-destroy:
 	@echo "Destroying standalone MySQL instance..."
 	@cd ./standalone && \
 		terraform destroy -auto-approve
+
+benchmark:
+	standalone
+	@echo "Running benchmark on standalone..."
+		@cd ./standalone && \
+		ansible-playbook -i ./ansible/inventory.ini ./ansible/playbooks/benchmark-playbook.yaml
+	cluster
+	@echo "Running benchmark on cluster..."
+		@cd ./cluster && \
+		ansible-playbook -i ./ansible/inventory.ini ./ansible/playbooks/benchmark-playbook.yaml
+
+
 
