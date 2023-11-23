@@ -39,6 +39,18 @@ benchmark:
 	$(call run-benchmark,cluster)
 	$(MAKE) cluster-destroy
 
+plan-cluster:
+	$(call plan,cluster)
+
+plan-standalone:
+	$(call plan,standalone)
+
+apply-cluster:
+	$(call apply,cluster)
+
+apply-standalone:
+	$(call apply,standalone)
+
 # Sub commands
 create-cluster:
 	@echo "Creating MySQL cluster..."
@@ -76,7 +88,6 @@ configure-cluster-proxy:
 	@cd ./cluster && \
 		$(ANSIBLE) -i ./ansible/inventory.ini ./ansible/playbooks/proxy-playbook.yaml
 
-#TODO work on standalone
 create-standalone:
 	@echo "Creating standalone MySQL instance..."
 	@cd ./standalone && \
@@ -93,8 +104,21 @@ configure-standalone:
 	@cd ./standalone && \
 		$(ANSIBLE) -i ./ansible/inventory.ini ./ansible/playbooks/playbook.yaml
 
+# Helper functions
+
 define run-benchmark
 	@echo "Running benchmark on $1..."
 	@cd ./$1 && \
 		$(ANSIBLE) -i ./ansible/inventory.ini ./ansible/playbooks/benchmark-playbook.yaml
+endef
+
+define plan
+	@cd ./$1 && \
+		$(TERRAFORM) init && \
+		$(TERRAFORM) plan
+endef
+
+define apply
+	@cd ./$1 && \
+		$(TERRAFORM) apply
 endef
