@@ -21,6 +21,8 @@
         - libncurses5
         - sysbench
         - python3-pymysql
+        - libaio1
+        - libmecab2
 
     - name: Create shared directory
       file:
@@ -128,14 +130,6 @@
         dest: "/home/shared/install"
         remote_src: yes
 
-    - name: Install required dependencies
-      apt:
-        name: "{{ item }}"
-        state: present
-      with_items:
-        - libaio1
-        - libmecab2
-
     - name: Install MySQL Cluster Management Server 1
       apt:
         deb: "{{ item }}"
@@ -166,7 +160,6 @@
     - name: Create MySQL Cluster conf file
       become: true
       command: "touch /etc/mysql/my.cnf"
-
 
     - name: Configure MySQL options
       blockinfile:

@@ -13,7 +13,7 @@
 
     - name: Fetch testbench result log to local machine
       fetch:
-        src: "/home/shared/standalone-result.log"
+        src: "/home/shared/cluster-result.log"
         dest: "/Users/mazilious/git/LOG8415_Projet/src/terraform/benchmarks/"
         flat: yes
 

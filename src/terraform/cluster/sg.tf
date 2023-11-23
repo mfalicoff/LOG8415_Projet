@@ -1,7 +1,7 @@
 resource "aws_security_group" "proxy" {
   name        = "proxy"
   description = "Allow inbound HTTP traffic from the broad internet"
-  vpc_id      = data.aws_vpc.default.id
+  vpc_id      = data.aws_vpc.cluster-default.id
 
 }
 
@@ -39,7 +39,7 @@ resource "aws_security_group_rule" "proxy_egress" {
 resource "aws_security_group" "cluster" {
   name        = "cluster"
   description = "Allow inbound HTTP traffic from the broad internet"
-  vpc_id      = data.aws_vpc.default.id
+  vpc_id      = data.aws_vpc.cluster-default.id
 }
 
 # Allow HTTP traffic from the Proxy to the cluster

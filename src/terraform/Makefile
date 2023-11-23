@@ -1,70 +1,100 @@
 SHELL := /bin/bash
 
+TERRAFORM := terraform
+ANSIBLE := ansible-playbook
+WAIT := sleep 60
+
 .PHONY: cluster standalone cluster-destroy standalone-destroy benchmark
 
-cluster:
-	@echo "Creating MySQL cluster..."
-	@cd ./cluster && \
-		terraform init && \
-		terraform plan && \
-		terraform apply -auto-approve
-	@echo "Sleeping for 1 minute for bootstrap to complete..."
-	@sleep 60
-	@echo "Configuring manager MySQL instance with ansible..."
-	@cd ./cluster && \
-		ansible-playbook -i ./ansible/inventory.ini ./ansible/playbooks/manager-playbook.yaml
-	@echo "Configuring workers MySQL instance with ansible..."
-	@cd ./cluster && \
-		ansible-playbook -i ./ansible/inventory.ini ./ansible/playbooks/worker-playbook.yaml
-	@echo "Configuring proxy instance with ansible..."
-	@echo "Temporary setup for python proxy..."
-	@cd ../apps/proxy && \
-		pip freeze > requirements.txt
-	@cd ./cluster && \
-		ansible-playbook -i ./ansible/inventory.ini ./ansible/playbooks/proxy-playbook.yaml
-
-cluster-proxy:
-	@echo "Creating MySQL cluster..."
-	@cd ./cluster && \
-		terraform init && \
-		terraform plan && \
-		terraform apply -auto-approve
-	@echo "Configuring proxy instance with ansible..."
-	@echo "Temporary setup for python proxy..."
-	@cd ../apps/proxy && \
-		pip freeze > requirements.txt
-	@cd ./cluster && \
-		ansible-playbook -i ./ansible/inventory.ini ./ansible/playbooks/proxy-playbook.yaml
+# MAIN COMMANDS
+cluster: create-cluster
 
 cluster-destroy:
 	@echo "Destroying MySQL cluster..."
 	@cd ./cluster && \
-		terraform destroy -auto-approve
+		$(TERRAFORM) destroy -auto-approve
 
-standalone:
-	@echo "Creating standalone MySQL instance..."
-	@cd ./standalone && \
-		terraform init && \
-		terraform plan && \
-		terraform apply -auto-approve
-	@echo "Configuring MySQL instance with ansible..."
-	@cd ./standalone && \
-		ansible-playbook -i ./ansible/inventory.ini ./ansible/playbooks/playbook.yaml
+cluster-redeploy:
+	@(MAKE) cluster-destroy
+	@echo "Sleeping for 1 minute for destroy to complete..."
+	@(MAKE) create-cluster
+
+standalone: create-standalone
 
 standalone-destroy:
 	@echo "Destroying standalone MySQL instance..."
 	@cd ./standalone && \
-		terraform destroy -auto-approve
+		$(TERRAFORM) destroy -auto-approve
+
+standalone-redeploy:
+	@(MAKE) standalone-destroy
+	@echo "Sleeping for 1 minute for destroy to complete..."
+	@(MAKE) create-standalone
 
 benchmark:
-	standalone
-	@echo "Running benchmark on standalone..."
-		@cd ./standalone && \
-		ansible-playbook -i ./ansible/inventory.ini ./ansible/playbooks/benchmark-playbook.yaml
-	cluster
-	@echo "Running benchmark on cluster..."
-		@cd ./cluster && \
-		ansible-playbook -i ./ansible/inventory.ini ./ansible/playbooks/benchmark-playbook.yaml
+	$(MAKE) standalone
+	$(call run-benchmark,standalone)
+	$(MAKE) standalone-destroy
+	$(MAKE) create-cluster
+	$(call run-benchmark,cluster)
+	$(MAKE) cluster-destroy
+
+# Sub commands
+create-cluster:
+	@echo "Creating MySQL cluster..."
+	@cd ./cluster && \
+		$(TERRAFORM) init && \
+		$(TERRAFORM) plan && \
+		$(TERRAFORM) apply -auto-approve
+	@echo "Sleeping for 1 minute for boot to complete..."
+	@$(WAIT)
+	@$(MAKE) configure-cluster
 
 
+configure-cluster:
+	@echo "Configuring MySQL cluster with ansible..."
+	@$(MAKE) configure-cluster-manager
+	@$(MAKE) configure-cluster-worker
+	@$(MAKE) configure-cluster-proxy
 
+configure-cluster-manager:
+	@echo "Configuring manager MySQL instance with ansible..."
+	@cd ./cluster && \
+		$(ANSIBLE) -i ./ansible/inventory.ini ./ansible/playbooks/manager-playbook.yaml
+
+configure-cluster-worker:
+	@echo "Configuring workers MySQL instance with ansible..."
+	@cd ./cluster && \
+		$(ANSIBLE) -i ./ansible/inventory.ini ./ansible/playbooks/worker-playbook.yaml
+
+
+configure-cluster-proxy:
+	@echo "Configuring proxy instance with ansible..."
+	@echo "Temporary setup for python proxy..."
+	@cd ../apps/proxy && \
+		pip freeze > requirements.txt
+	@cd ./cluster && \
+		$(ANSIBLE) -i ./ansible/inventory.ini ./ansible/playbooks/proxy-playbook.yaml
+
+#TODO work on standalone
+create-standalone:
+	@echo "Creating standalone MySQL instance..."
+	@cd ./standalone && \
+		$(TERRAFORM) init && \
+		$(TERRAFORM) plan && \
+		$(TERRAFORM) apply -auto-approve
+	@echo "Sleeping for 1 minute for boot to complete..."
+	@$(WAIT)
+	@$(MAKE) configure-standalone
+
+
+configure-standalone:
+	@echo "Configuring MySQL instance with ansible..."
+	@cd ./standalone && \
+		$(ANSIBLE) -i ./ansible/inventory.ini ./ansible/playbooks/playbook.yaml
+
+define run-benchmark
+	@echo "Running benchmark on $1..."
+	@cd ./$1 && \
+		$(ANSIBLE) -i ./ansible/inventory.ini ./ansible/playbooks/benchmark-playbook.yaml
+endef
