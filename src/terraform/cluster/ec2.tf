@@ -24,8 +24,6 @@ resource "aws_instance" "proxy" {
   instance_type          = "t2.large"
   vpc_security_group_ids = [aws_security_group.proxy.id]
 
-
-
   key_name = aws_key_pair.cluster-aws_key.key_name
 
   tags = {

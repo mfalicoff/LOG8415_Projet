@@ -7,6 +7,9 @@ PROXY_PUBLIC_IP=${addr}
 %{ for index, addr in manager_ip_addrs_public ~}
 MANAGER_PUBLIC_IP=${addr}
 %{ endfor ~}
+%{ for index, addr in manager_ip_addrs_private ~}
+MANAGER_PRIVATE_IP=${addr}
+%{ endfor ~}
 
 # Workers IP
 %{ for index, addr in workers_ip_addrs_public ~}

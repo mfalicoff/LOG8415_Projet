@@ -33,7 +33,7 @@ MYSQL_DEFAULT_PORT = 3306
 
 # Access environment variables
 proxy_ip = os.getenv("PROXY_PUBLIC_IP")
-manager_ip = os.getenv("MANAGER_PUBLIC_IP")
+manager_ip = os.getenv("MANAGER_PRIVATE_IP")
 worker1_ip = os.getenv("WORKER1_PUBLIC_IP")
 worker2_ip = os.getenv("WORKER2_PUBLIC_IP")
 worker3_ip = os.getenv("WORKER3_PUBLIC_IP")
@@ -147,16 +147,20 @@ def process_query_put():
 
 
 def execute_query(method_type, query):
-    if method_type == 'direct':
-        result = direct_mysql_connection(query)
-    elif method_type == 'random':
-        result = random_node(query)
-    elif method_type == 'custom':
-        result = customized_hit(query)
-    else:
-        return jsonify({'error': f'Invalid method type: {method_type}'})
+    try:
+        if method_type == 'direct':
+            result = direct_mysql_connection(query)
+        elif method_type == 'random':
+            result = random_node(query)
+        elif method_type == 'custom':
+            result = customized_hit(query)
+        else:
+            return jsonify({'error': f'Invalid method type: {method_type}'})
 
-    return jsonify({'result': result})
+        return jsonify({'result': result})
+    except Exception as e:
+        app.logger.error(f"Error: {str(e)}")
+        return jsonify({'error': f'Error: {str(e)}'})
 
 
 def direct_mysql_connection(query):

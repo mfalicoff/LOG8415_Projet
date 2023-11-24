@@ -11,26 +11,16 @@
         src: "/Users/mazilious/git/LOG8415_Projet/src/terraform/cluster/.ssh"
         dest: "/home/app/"
 
-    - name: Copy proxy app (debug)
+    - name: Copy env key to proxy
       ansible.builtin.copy:
-        src: "/Users/mazilious/git/LOG8415_Projet/src/apps/proxy/"
+        src: "/Users/mazilious/git/LOG8415_Projet/src/apps/proxy/.env.remote"
         dest: "/home/app/"
-        mode: '0777'
-
-    - name: Replace env to mount (debug)
-      lineinfile:
-        path: "/home/app/main.py"
-        regexp: '^load_dotenv\(".env.local"\)'
-        line: 'load_dotenv(".env.remote")'
 
     - name: Install Packages
       apt:
         name: "{{ item }}"
         state: present
       with_items:
-        - nginx
-        - python3
-        - python3-pip
         - apt-transport-https
         - ca-certificates
         - curl
