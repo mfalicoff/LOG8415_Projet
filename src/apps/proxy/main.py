@@ -56,7 +56,9 @@ def create_mysql_connection(ssh_ip, mysql_host, query):
 
             for result in results:
                 print(result)
-            return results
+
+            columns = [column[0] for column in cursor.description]
+            return [dict(zip(columns, row)) for row in results]
     except pymysql.Error as e:
         print(f"Error: {str(e)}")
 
@@ -105,13 +107,19 @@ def execute_query(method_type, query):
 def direct_mysql_connection(query):
     # Use the direct connection function to execute the query and return the results.
     result = create_mysql_connection(manager_ip, manager_ip, query)
-    return f'Query: {query} executed with direct_mysql_connection and returned {result}'
+    return {
+        f'Query': f'{query} executed with direct_mysql_connection',
+        f'Result': result
+    }
 
 
 def random_node(query):
     # Use the SSH tunnel worker connection function to execute the query and return the results.
     result = create_mysql_connection(all_ips[random.randrange(0, 3)], manager_ip, query)
-    return f'Query: {query} executed with ssh_tunnel_worker_mysql_connection and returned {result}'
+    return {
+        f'Query': f'{query} executed with random_node',
+        f'Result': result
+    }
 
 
 def customized_hit(query):
@@ -128,8 +136,11 @@ def customized_hit(query):
             best_node = worker_ip
     print(f"The node with the lowest ping time is {best_node}")
     result = create_mysql_connection(best_node, manager_ip, query)
-    return f'Query: {query} executed with customized_hit and returned {result}'
+    return {
+        f'Query': f'{query} executed with customized_hit',
+        f'Result': result
+    }
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=80, debug=True)
