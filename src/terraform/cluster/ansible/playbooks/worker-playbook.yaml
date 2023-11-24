@@ -91,3 +91,5 @@
         name: ndb_mgmd
         enabled: yes
         state: started
+      retries: 3
+      delay: 5

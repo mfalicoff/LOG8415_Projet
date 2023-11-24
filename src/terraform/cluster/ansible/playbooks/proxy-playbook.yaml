@@ -1,0 +1,78 @@
+- hosts: aws_ec2_proxy
+  become: yes
+  tasks:
+    - name: Update and upgrade packages
+      apt:
+        update_cache: yes
+        upgrade: yes
+
+    - name: Copy ssh key to proxy
+      ansible.builtin.copy:
+        src: "/Users/mazilious/git/LOG8415_Projet/src/terraform/cluster/.ssh"
+        dest: "/home/app/"
+
+    - name: Copy proxy app (debug)
+      ansible.builtin.copy:
+        src: "/Users/mazilious/git/LOG8415_Projet/src/apps/proxy/"
+        dest: "/home/app/"
+        mode: '0777'
+
+    - name: Replace env to mount (debug)
+      lineinfile:
+        path: "/home/app/main.py"
+        regexp: '^load_dotenv\(".env.local"\)'
+        line: 'load_dotenv(".env.remote")'
+
+    - name: Install Packages
+      apt:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - nginx
+        - python3
+        - python3-pip
+        - apt-transport-https
+        - ca-certificates
+        - curl
+        - software-properties-common
+
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+
+    - name: Add Docker APT repository
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
+
+    - name: Install Docker
+      apt:
+        name: docker-ce
+        state: present
+
+    - name: Start Docker service
+      service:
+        name: docker
+        state: started
+
+    - name: Install bottle python package
+      ansible.builtin.pip:
+        requirements: /home/app/requirements.txt
+
+    - name: Ensure Docker is enabled and starts on boot
+      systemd:
+          name: docker
+          enabled: yes
+
+    - name: Run Docker container
+      docker_container:
+          name: mf-proxy
+          image: mazil007/mf-proxy:latest
+          pull: yes
+          network_mode: host
+          volumes:
+          - "/home/app/.ssh:/app/.ssh"
+          - "/home/app/.env.remote:/app/.env.remote"
+          - "/home/app/logs/:/app/logs/"
+          restart_policy: always
+          state: started
+

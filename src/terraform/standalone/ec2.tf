@@ -10,13 +10,13 @@ data "aws_ami" "ubuntu" {
   owners = ["099720109477"] # Canonical
 }
 
-resource "tls_private_key" "key" {
+resource "tls_private_key" "standalone-key" {
   algorithm = "RSA"
 }
 
-resource "aws_key_pair" "aws_key" {
+resource "aws_key_pair" "standalone-aws_key" {
   key_name = "ansible-ssh-key"
-  public_key = tls_private_key.key.public_key_openssh
+  public_key = tls_private_key.standalone-key.public_key_openssh
 }
 
 resource "aws_instance" "standalone" {
@@ -24,7 +24,7 @@ resource "aws_instance" "standalone" {
   instance_type          = "t2.micro"
   vpc_security_group_ids = [aws_security_group.standalone.id]
 
-  key_name = aws_key_pair.aws_key.key_name
+  key_name = aws_key_pair.standalone-aws_key.key_name
 
   tags = {
     Name            = "Standalone"

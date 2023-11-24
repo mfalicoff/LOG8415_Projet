@@ -15,3 +15,11 @@ output "worker-data" {
   ]
   description = "The public IP and DNS of the workers"
 }
+
+output "proxy-data" {
+  value = {
+    ip_address  = aws_instance.proxy.public_ip
+    public_dns = aws_instance.proxy.public_dns
+  }
+  description = "The public IP and DNS of the proxy"
+}

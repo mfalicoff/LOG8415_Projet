@@ -16,3 +16,5 @@
 *.DS_Store
 
 *.terraform.tfstate.lock.info
+
+*.env.*

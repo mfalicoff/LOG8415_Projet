@@ -87,18 +87,3 @@
        login_password: root
        login_db: sakila
        query: SELECT COUNT(*) FROM film_text
-
-    - name: Prepare statement with sysbench
-      command: "sysbench oltp_read_write --table-size=1000000 --mysql-db=sakila --mysql-user=root --mysql-password=root prepare"
-
-    - name: Execute performance test
-      shell: "sysbench oltp_read_write --table-size=1000000 --mysql-db=sakila --mysql-user=root --mysql-password=root --threads=6 --time=60 --max-requests=0 run > /home/shared/standalone-result.log"
-
-    - name: Display testbench results
-      command: "cat /home/shared/standalone-result.log"
-
-    - name: Fetch testbench result log to local machine
-      fetch:
-        src: "/home/shared/standalone-result.log"
-        dest: "/Users/mazilious/git/LOG8415_Projet/src/benchmarks/mysql/"
-        flat: yes

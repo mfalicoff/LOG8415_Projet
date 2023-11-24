@@ -1,7 +1,7 @@
 resource "aws_security_group" "standalone" {
   name        = "standalone"
   description = "Allow inbound HTTP traffic from the broad internet"
-  vpc_id      = data.aws_vpc.default.id
+  vpc_id      = data.aws_vpc.standalone-default.id
 }
 
 # Allow HTTP traffic from the broad internet to reach the ALB
