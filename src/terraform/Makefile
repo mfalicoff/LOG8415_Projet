@@ -51,6 +51,10 @@ apply-cluster:
 apply-standalone:
 	$(call apply,standalone)
 
+output-cluster:
+	@cd ./cluster && \
+		$(TERRAFORM) output
+
 # Sub commands
 create-cluster:
 	@echo "Creating MySQL cluster..."

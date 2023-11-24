@@ -15,7 +15,7 @@ jobs:
 
     - name: Build Docker Image
       run: |
-        cd src/apps/proxy
+        cd src/apps/trusted_host
         docker build . --tag mazil007/mf-trusted_host:latest
 
     - name: Login to Docker Hub (optional)
