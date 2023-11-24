@@ -64,7 +64,7 @@ def after_request(response):
     return response
 
 
-@app.route('/new_request', methods=['POST'])
+@app.route('/new_request', methods=['GET', 'POST', 'PUT', 'DELETE'])
 def new_request():
     method_type = request.args.get('method_type')
     query = request.args.get('query')
