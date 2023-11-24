@@ -82,7 +82,6 @@ configure-cluster-worker:
 
 configure-cluster-proxy:
 	@echo "Configuring proxy instance with ansible..."
-	@echo "Temporary setup for python proxy..."
 	@cd ../apps/proxy && \
 		pip freeze > requirements.txt
 	@cd ./cluster && \
