@@ -1,0 +1,9 @@
+# Proxy IP
+%{ for index, addr in proxy_ip_addrs_public ~}
+PROXY_PUBLIC_IP=${addr}
+%{ endfor ~}
+%{ for index, addr in proxy_ip_addrs_private ~}
+PROXY_PRIVATE_IP=${addr}
+%{ endfor ~}
+
+

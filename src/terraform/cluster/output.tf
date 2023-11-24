@@ -23,3 +23,11 @@ output "proxy-data" {
   }
   description = "The public IP and DNS of the proxy"
 }
+
+output "trusted-data" {
+  value = {
+    ip_address  = aws_instance.trusted_host.public_ip
+    public_dns = aws_instance.trusted_host.public_dns
+  }
+  description = "The public IP and DNS of the trusted"
+}

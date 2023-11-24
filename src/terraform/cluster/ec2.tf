@@ -19,6 +19,18 @@ resource "aws_key_pair" "cluster-aws_key" {
   public_key = tls_private_key.cluster-key.public_key_openssh
 }
 
+resource "aws_instance" "trusted_host" {
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = "t2.large"
+  vpc_security_group_ids = [aws_security_group.trusted_host.id]
+
+  key_name = aws_key_pair.cluster-aws_key.key_name
+
+  tags = {
+    Name = "Trusted Host"
+  }
+}
+
 resource "aws_instance" "proxy" {
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = "t2.large"
