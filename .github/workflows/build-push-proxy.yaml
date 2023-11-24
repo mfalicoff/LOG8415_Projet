@@ -1,0 +1,26 @@
+name: Proxy - Docker Build and Push
+
+on:
+  push:
+    paths:
+      - 'src/apps/proxy/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+
+    - name: Change directory to src
+      run: cd src/apps/proxy
+
+    - name: Build Docker Image
+      run: docker build -t mf-proxy:latest ./src
+
+    - name: Login to Docker Hub (optional)
+      if: success()
+      run: |
+        echo ${{ secrets.DOCKER_USERNAME }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+        docker push mf-proxy:latest
