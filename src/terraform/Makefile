@@ -9,15 +9,15 @@ WAIT := sleep 60
 # MAIN COMMANDS
 cluster: create-cluster
 
+cluster-redeploy: cluster-destroy
+	@echo "Sleeping for 1 minute for destroy to complete..."
+	@sleep 60
+	@$(MAKE) create-cluster
+
 cluster-destroy:
 	@echo "Destroying MySQL cluster..."
 	@cd ./cluster && \
 		$(TERRAFORM) destroy -auto-approve
-
-cluster-redeploy:
-	@(MAKE) cluster-destroy
-	@echo "Sleeping for 1 minute for destroy to complete..."
-	@(MAKE) create-cluster
 
 standalone: create-standalone
 
