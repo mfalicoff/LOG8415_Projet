@@ -3,6 +3,7 @@ import random
 import paramiko
 import ping3
 import pymysql
+import requests
 from sshtunnel import SSHTunnelForwarder
 from dotenv import load_dotenv
 import os
@@ -23,10 +24,7 @@ app.logger.setLevel(logging.INFO)
 
 # Load environment variables from the .env file
 app.logger.info(f"Loading environment variables from .env file {os.getenv('ENVIRONMENT')}")
-if os.getenv("ENVIRONMENT") == "production":
-    load_dotenv(".env.remote")
-else:
-    load_dotenv(".env.local")
+load_dotenv(".env")
 
 # Access environment variables
 proxy_ip = os.getenv("PROXY_PUBLIC_IP")
@@ -64,6 +62,26 @@ def after_request(response):
         response.status
     )
     return response
+
+
+@app.route('/new_request', methods=['POST'])
+def new_request():
+    method_type = request.args.get('method_type')
+    query = request.args.get('query')
+    return execute_query(method_type, query, request.method)
+
+
+def execute_query(method_type, query, method):
+    try:
+        url = f'http://{proxy_ip}/?method_type={method_type}&query={query}'
+        headers = {'Content-Type': 'application/json'}
+
+        response = requests.request(method, url, headers=headers)
+        return response.json()
+    except Exception as e:
+        app.logger.error(f'Error executing query: {e}')
+        return jsonify({'message': f'Error executing query: {e}'})
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=80, debug=True)

@@ -1,5 +1,5 @@
 resource "aws_security_group" "trusted_host" {
-  name        = "proxy"
+  name        = "trusted_host"
   description = "Allow inbound HTTP traffic from the broad internet"
   vpc_id      = data.aws_vpc.cluster-default.id
 }
