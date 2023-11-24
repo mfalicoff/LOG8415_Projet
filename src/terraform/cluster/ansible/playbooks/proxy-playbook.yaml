@@ -63,20 +63,16 @@
           name: docker
           enabled: yes
 
-    - name: Pull Docker image
-      docker_image:
-        name: mazil007/mf-proxy:latest
-        source: pull
-
     - name: Run Docker container
       docker_container:
           name: mf-proxy
           image: mazil007/mf-proxy:latest
+          pull: yes
           network_mode: host
           volumes:
           - "/home/app/.ssh:/app/.ssh"
           - "/home/app/.env.remote:/app/.env.remote"
-          - "/home/app/app.log:/app/app.log"
+          - "/home/app/logs/:/app/logs/"
           restart_policy: always
           state: started
 

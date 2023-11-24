@@ -1,3 +1,4 @@
+import datetime
 import random
 import paramiko
 import ping3
@@ -9,11 +10,10 @@ from flask import Flask, request, jsonify
 import logging
 from logging.handlers import RotatingFileHandler
 
-
 app = Flask(__name__)
 
 # Configure the logger
-handler = RotatingFileHandler('app.log', maxBytes=10000, backupCount=1)
+handler = RotatingFileHandler('logs/app.log', maxBytes=10000, backupCount=1)
 formatter = logging.Formatter('%(asctime)s [%(levelname)s] - %(message)s')
 handler.setFormatter(formatter)
 app.logger.addHandler(handler)
@@ -56,6 +56,34 @@ app.logger.info(
     Worker 3 IP: {worker3_ip}
     SSH Key Path: {ssh_key_path}
     ''')
+
+
+@app.before_request
+def log_request_info():
+    timestamp = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+    app.logger.info(
+        '%s %s %s %s %s',
+        timestamp,
+        request.remote_addr,
+        request.method,
+        request.scheme,
+        request.full_path
+    )
+
+
+@app.after_request
+def after_request(response):
+    timestamp = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+    app.logger.info(
+        '%s %s %s %s %s %s',
+        timestamp,
+        request.remote_addr,
+        request.method,
+        request.scheme,
+        request.full_path,
+        response.status
+    )
+    return response
 
 
 def create_mysql_connection(ssh_ip, mysql_host, query):
