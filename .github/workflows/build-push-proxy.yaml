@@ -2,8 +2,8 @@ name: Proxy - Docker Build and Push
 
 on:
   push:
-#    paths:
-#      - 'src/apps/proxy/**'
+    paths:
+      - 'src/apps/proxy/**'
 
 jobs:
   build:

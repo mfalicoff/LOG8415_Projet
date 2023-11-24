@@ -76,6 +76,7 @@
           volumes:
           - "/home/app/.ssh:/app/.ssh"
           - "/home/app/.env.remote:/app/.env.remote"
+          - "/home/app/app.log:/app/app.log"
           restart_policy: always
           state: started
 

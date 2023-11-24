@@ -16,4 +16,4 @@ EXPOSE 80
 ENV ENVIRONMENT=production
 
 # Run app.py when the container launches
-CMD ["python", "main.py"]
+CMD ["./gunicorn.sh"]

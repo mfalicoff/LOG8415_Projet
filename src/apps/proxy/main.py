@@ -6,10 +6,23 @@ from sshtunnel import SSHTunnelForwarder
 from dotenv import load_dotenv
 import os
 from flask import Flask, request, jsonify
+import logging
+from logging.handlers import RotatingFileHandler
+
 
 app = Flask(__name__)
 
+# Configure the logger
+handler = RotatingFileHandler('app.log', maxBytes=10000, backupCount=1)
+formatter = logging.Formatter('%(asctime)s [%(levelname)s] - %(message)s')
+handler.setFormatter(formatter)
+app.logger.addHandler(handler)
+
+# Set the logging level (you can adjust this based on your needs)
+app.logger.setLevel(logging.INFO)
+
 # Load environment variables from the .env file
+app.logger.info(f"Loading environment variables from .env file {os.getenv('ENVIRONMENT')}")
 if os.getenv("ENVIRONMENT") == "production":
     load_dotenv(".env.remote")
 else:
@@ -33,6 +46,17 @@ MYSQL_DB = "sakila"
 
 all_ips = [manager_ip, worker1_ip, worker2_ip, worker3_ip]
 
+app.logger.info(
+    f'''
+    Starting proxy server with the following configuration:
+    Proxy IP: {proxy_ip}
+    Manager IP: {manager_ip}
+    Worker 1 IP: {worker1_ip}
+    Worker 2 IP: {worker2_ip}
+    Worker 3 IP: {worker3_ip}
+    SSH Key Path: {ssh_key_path}
+    ''')
+
 
 def create_mysql_connection(ssh_ip, mysql_host, query):
     # Creates a MySQL connection by establishing an SSH tunnel and connecting to the MySQL server.
@@ -52,7 +76,7 @@ def create_mysql_connection(ssh_ip, mysql_host, query):
                 password=MYSQL_PASSWORD,
                 database=MYSQL_DB,
             )
-            print("Connection successful!")
+            app.logger.debug("Connection successful!")
             cursor = conn.cursor()
             cursor.execute(query)
             results = cursor.fetchall()
@@ -63,7 +87,7 @@ def create_mysql_connection(ssh_ip, mysql_host, query):
             columns = [column[0] for column in cursor.description]
             return [dict(zip(columns, row)) for row in results]
     except pymysql.Error as e:
-        print(f"Error: {str(e)}")
+        app.logger.error(f"Error: {str(e)}")
 
 
 @app.route('/', methods=['GET'])
@@ -137,7 +161,7 @@ def customized_hit(query):
         if ping_time is not None and ping_time < lowest_ping_time:
             lowest_ping_time = ping_time
             best_node = worker_ip
-    print(f"The node with the lowest ping time is {best_node}")
+    app.logger.debug(f"The node with the lowest ping time is {best_node}")
     result = create_mysql_connection(best_node, manager_ip, query)
     return {
         f'Query': f'{query} executed with customized_hit',
