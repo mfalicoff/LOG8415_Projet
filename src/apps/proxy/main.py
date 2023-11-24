@@ -10,7 +10,10 @@ from flask import Flask, request, jsonify
 app = Flask(__name__)
 
 # Load environment variables from the .env file
-load_dotenv(".env.local")
+if os.getenv("ENVIRONMENT") == "production":
+    load_dotenv(".env.remote")
+else:
+    load_dotenv(".env.local")
 
 # Define constants
 MYSQL_DEFAULT_PORT = 3306
