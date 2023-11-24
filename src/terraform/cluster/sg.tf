@@ -44,25 +44,25 @@ resource "aws_security_group" "proxy" {
 
 # Allow HTTP traffic from the broad internet to reach the ALB
 # TODO REMOVE THIS
-resource "aws_security_group_rule" "proxy_ingress" {
-  type              = "ingress"
-  from_port         = 80
-  to_port           = 80
-  protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"]
-  ipv6_cidr_blocks  = ["::/0"]
-  security_group_id = aws_security_group.proxy.id
-}
-
-# TODO replace with this
 #resource "aws_security_group_rule" "proxy_ingress" {
 #  type              = "ingress"
-#  from_port         = 0
-#  to_port           = 0
-#  protocol          = "-1"
+#  from_port         = 80
+#  to_port           = 80
+#  protocol          = "tcp"
+#  cidr_blocks       = ["0.0.0.0/0"]
+#  ipv6_cidr_blocks  = ["::/0"]
 #  security_group_id = aws_security_group.proxy.id
-#  source_security_group_id = aws_security_group.trusted_host.id
 #}
+
+# TODO replace with this
+resource "aws_security_group_rule" "proxy_ingress" {
+  type              = "ingress"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
+  security_group_id = aws_security_group.proxy.id
+  source_security_group_id = aws_security_group.trusted_host.id
+}
 
 # Allow HTTP traffic from the load balancer to EC2 instances
 resource "aws_security_group_rule" "proxy_egress" {

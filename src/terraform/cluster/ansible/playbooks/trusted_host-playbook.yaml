@@ -6,7 +6,7 @@
         update_cache: yes
         upgrade: yes
 
-    - name: Copy proxy app (debug)
+    - name: Copy trusted host app (debug)
       ansible.builtin.copy:
         src: "/Users/mazilious/git/LOG8415_Projet/src/apps/trusted_host/"
         dest: "/home/app/"
@@ -40,10 +40,6 @@
         name: docker
         state: started
 
-    - name: Install bottle python package
-      ansible.builtin.pip:
-        requirements: /home/app/requirements.txt
-
     - name: Ensure Docker is enabled and starts on boot
       systemd:
           name: docker
@@ -51,7 +47,7 @@
 
     - name: Run Docker container
       docker_container:
-          name: mf-proxy
+          name: mf-trusted-host
           image: mazil007/mf-trusted_host:latest
           pull: yes
           network_mode: host

@@ -44,10 +44,6 @@
         name: docker
         state: started
 
-    - name: Install bottle python package
-      ansible.builtin.pip:
-        requirements: /home/app/requirements.txt
-
     - name: Ensure Docker is enabled and starts on boot
       systemd:
           name: docker

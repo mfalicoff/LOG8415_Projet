@@ -27,7 +27,7 @@ app.logger.info(f"Loading environment variables from .env file {os.getenv('ENVIR
 load_dotenv(".env")
 
 # Access environment variables
-proxy_ip = os.getenv("PROXY_PUBLIC_IP")
+proxy_ip = os.getenv("PROXY_PRIVATE_IP")
 
 app.logger.info(
     f'''
