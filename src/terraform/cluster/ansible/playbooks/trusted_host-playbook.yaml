@@ -52,7 +52,7 @@
           pull: yes
           network_mode: host
           volumes:
-          - "/home/app/.env.remote:/app/.env.remote"
+          - "/home/app/.env:/app/.env"
           - "/home/app/logs/:/app/logs/"
           restart_policy: always
           state: started
