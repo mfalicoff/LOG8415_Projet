@@ -73,6 +73,7 @@ configure-cluster:
 	@$(MAKE) configure-cluster-worker
 	@$(MAKE) configure-cluster-proxy
 	@$(MAKE) configure-cluster-trusted_host
+	@$(MAKE) configure-cluster-gatekeeper
 
 configure-cluster-manager:
 	@echo "Configuring manager MySQL instance with ansible..."
@@ -97,6 +98,13 @@ configure-cluster-trusted_host:
 		pip freeze > requirements.txt
 	@cd ./cluster && \
 		$(ANSIBLE) -i ./ansible/inventory.ini ./ansible/playbooks/trusted_host-playbook.yaml
+
+configure-cluster-gatekeeper:
+	@echo "Configuring gatekeeper instance with ansible..."
+	@cd ../apps/gatekeeper && \
+		pip freeze > requirements.txt
+	@cd ./cluster && \
+		$(ANSIBLE) -i ./ansible/inventory.ini ./ansible/playbooks/gatekeeper-playbook.yaml
 
 create-standalone:
 	@echo "Creating standalone MySQL instance..."

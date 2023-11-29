@@ -1,0 +1,9 @@
+# Trusted Host IP
+%{ for index, addr in trusted_ip_addrs_public ~}
+TRUSTED_HOST_PUBLIC_IP=${addr}
+%{ endfor ~}
+%{ for index, addr in trusted_ip_addrs_private ~}
+TRUSTED_HOST_PRIVATE_IP=${addr}
+%{ endfor ~}
+
+

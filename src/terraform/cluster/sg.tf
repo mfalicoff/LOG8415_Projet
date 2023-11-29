@@ -1,3 +1,41 @@
+resource "aws_security_group" "gatekeeper" {
+  name        = "gatekeeper"
+  description = "Allow inbound HTTP traffic from the broad internet"
+  vpc_id      = data.aws_vpc.cluster-default.id
+}
+
+# Allow HTTP traffic from the broad internet to reach the ALB
+resource "aws_security_group_rule" "gatekeeper_ingress" {
+  type              = "ingress"
+  from_port         = 80
+  to_port           = 80
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  ipv6_cidr_blocks  = ["::/0"]
+  security_group_id = aws_security_group.gatekeeper.id
+}
+
+# Allow HTTP traffic from the load balancer to EC2 instances
+resource "aws_security_group_rule" "gatekeeper_egress" {
+  type              = "egress"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
+  cidr_blocks       = ["0.0.0.0/0"]
+  ipv6_cidr_blocks  = ["::/0"]
+  security_group_id        = aws_security_group.gatekeeper.id
+}
+
+ resource "aws_security_group_rule" "gatekeeper_ssh" {
+   type              = "ingress"
+   from_port         = 22
+   to_port           = 22
+   protocol          = "tcp"
+   cidr_blocks       = ["0.0.0.0/0"]
+   security_group_id = aws_security_group.gatekeeper.id
+ }
+
+// TODO restrict proxy to accpets only from gatekeeper
 resource "aws_security_group" "trusted_host" {
   name        = "trusted_host"
   description = "Allow inbound HTTP traffic from the broad internet"
@@ -10,9 +48,10 @@ resource "aws_security_group_rule" "trusted_host_ingress" {
   from_port         = 80
   to_port           = 80
   protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"]
+  cidr_blocks       = ["0.0.0.0/0"] // TODO restrict to gatekeeper
   ipv6_cidr_blocks  = ["::/0"]
   security_group_id = aws_security_group.trusted_host.id
+#  source_security_group_id = aws_security_group.gatekeeper.id
 }
 
 # Allow HTTP traffic from the load balancer to EC2 instances

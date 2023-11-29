@@ -27,3 +27,11 @@ resource "local_file" "trusted_host_env" {
   })
   filename = "../../apps/trusted_host/.env"
 }
+
+resource "local_file" "gatekeeper_env" {
+  content = templatefile("templates/gatekeeper-env.tftpl", {
+    trusted_ip_addrs_public = [aws_instance.trusted_host.public_ip]
+    trusted_ip_addrs_private = [aws_instance.trusted_host.private_ip]
+  })
+  filename = "../../apps/gatekeeper/.env"
+}

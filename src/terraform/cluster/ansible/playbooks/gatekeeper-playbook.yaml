@@ -1,0 +1,65 @@
+- hosts: aws_ec2_gatekeeper
+  become: yes
+  tasks:
+    - name: Update and upgrade packages
+      apt:
+        update_cache: yes
+        upgrade: yes
+
+    - name: Copy trusted host app (debug)
+      ansible.builtin.copy:
+        src: "/Users/mazilious/git/LOG8415_Projet/src/apps/gatekeeper/"
+        dest: "/home/app/"
+        mode: '0777'
+
+    - name: Install Packages
+      apt:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - apt-transport-https
+        - ca-certificates
+        - curl
+        - software-properties-common
+
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+
+    - name: Add Docker APT repository
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
+
+    - name: Install Docker
+      apt:
+        name: docker-ce
+        state: present
+
+    - name: Start Docker service
+      service:
+        name: docker
+        state: started
+
+    - name: Ensure Docker is enabled and starts on boot
+      systemd:
+          name: docker
+          enabled: yes
+
+    - name: Add current user to Docker group
+      ansible.builtin.user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    - name: Run Docker container
+      docker_container:
+          name: mf-gatekeeper
+          image: mazil007/mf-gatekeeper:latest
+          pull: yes
+          network_mode: host
+          volumes:
+          - "/home/app/.env:/app/.env"
+          - "/home/app/logs/:/app/logs/"
+          restart_policy: always
+          state: started
+
