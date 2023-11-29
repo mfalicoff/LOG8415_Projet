@@ -51,6 +51,10 @@ apply-cluster:
 apply-standalone:
 	$(call apply,standalone)
 
+output-cluster:
+	@cd ./cluster && \
+		$(TERRAFORM) output
+
 # Sub commands
 create-cluster:
 	@echo "Creating MySQL cluster..."
@@ -68,6 +72,7 @@ configure-cluster:
 	@$(MAKE) configure-cluster-manager
 	@$(MAKE) configure-cluster-worker
 	@$(MAKE) configure-cluster-proxy
+	@$(MAKE) configure-cluster-trusted_host
 
 configure-cluster-manager:
 	@echo "Configuring manager MySQL instance with ansible..."
@@ -79,13 +84,19 @@ configure-cluster-worker:
 	@cd ./cluster && \
 		$(ANSIBLE) -i ./ansible/inventory.ini ./ansible/playbooks/worker-playbook.yaml
 
-
 configure-cluster-proxy:
 	@echo "Configuring proxy instance with ansible..."
 	@cd ../apps/proxy && \
 		pip freeze > requirements.txt
 	@cd ./cluster && \
 		$(ANSIBLE) -i ./ansible/inventory.ini ./ansible/playbooks/proxy-playbook.yaml
+
+configure-cluster-trusted_host:
+	@echo "Configuring trusted host instance with ansible..."
+	@cd ../apps/trusted_host && \
+		pip freeze > requirements.txt
+	@cd ./cluster && \
+		$(ANSIBLE) -i ./ansible/inventory.ini ./ansible/playbooks/trusted_host-playbook.yaml
 
 create-standalone:
 	@echo "Creating standalone MySQL instance..."

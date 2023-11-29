@@ -12,6 +12,8 @@ resource "local_file" "ansible_inventory" {
     workers_ip_addrs_private = [for i in aws_instance.cluster_workers:i.private_ip]
     proxy_ip_addrs_public = [aws_instance.proxy.public_ip]
     proxy_ip_addrs_private = [aws_instance.proxy.private_ip]
+    trusted_host_ip_addrs_public = [aws_instance.trusted_host.public_ip]
+    trusted_host_ip_addrs_private = [aws_instance.trusted_host.private_ip]
     ssh_keyfile = local_sensitive_file.private_key.filename
   })
   filename = format("%s/%s/%s", abspath(path.root), "ansible", "inventory.ini")

@@ -18,3 +18,7 @@
 *.terraform.tfstate.lock.info
 
 *.env.*
+
+**/logs/
+
+*.env

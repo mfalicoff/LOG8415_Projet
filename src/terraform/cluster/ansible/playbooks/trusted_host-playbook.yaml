@@ -1,4 +1,4 @@
-- hosts: aws_ec2_proxy
+- hosts: aws_ec2_trusted_host
   become: yes
   tasks:
     - name: Update and upgrade packages
@@ -6,15 +6,11 @@
         update_cache: yes
         upgrade: yes
 
-    - name: Copy ssh key to proxy
+    - name: Copy trusted host app (debug)
       ansible.builtin.copy:
-        src: "/Users/mazilious/git/LOG8415_Projet/src/terraform/cluster/.ssh"
+        src: "/Users/mazilious/git/LOG8415_Projet/src/apps/trusted_host/"
         dest: "/home/app/"
-
-    - name: Copy env key to proxy
-      ansible.builtin.copy:
-        src: "/Users/mazilious/git/LOG8415_Projet/src/apps/proxy/.env.remote"
-        dest: "/home/app/"
+        mode: '0777'
 
     - name: Install Packages
       apt:
@@ -57,13 +53,12 @@
 
     - name: Run Docker container
       docker_container:
-          name: mf-proxy
-          image: mazil007/mf-proxy:latest
+          name: mf-trusted-host
+          image: mazil007/mf-trusted_host:latest
           pull: yes
           network_mode: host
           volumes:
-          - "/home/app/.ssh:/app/.ssh"
-          - "/home/app/.env.remote:/app/.env.remote"
+          - "/home/app/.env:/app/.env"
           - "/home/app/logs/:/app/logs/"
           restart_policy: always
           state: started
