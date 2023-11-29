@@ -45,6 +45,12 @@
           name: docker
           enabled: yes
 
+    - name: Add current user to Docker group
+      ansible.builtin.user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
     - name: Run Docker container
       docker_container:
           name: mf-trusted-host
