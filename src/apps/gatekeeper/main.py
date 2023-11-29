@@ -17,7 +17,7 @@ handler.setFormatter(formatter)
 app.logger.addHandler(handler)
 
 # Set the logging level (you can adjust this based on your needs)
-app.logger.setLevel(logging.INFO)
+app.logger.setLevel(logging.debug)
 
 # Load environment variables from the .env file
 app.logger.info(f"Loading environment variables from .env file {os.getenv('ENVIRONMENT')}")
@@ -128,7 +128,6 @@ def add_movie():
     # Code to add a new movie to the database
     query = request.args.get('query')
     print(query)
-    # test_query = "INSERT INTO film (title, language_id) VALUES ('test3', '1')"
     res = execute_query("direct", query, "POST")
     print(query, f"res:{res}")
     return res

@@ -1,5 +1,7 @@
 import datetime
 import random
+from urllib.parse import unquote
+
 import paramiko
 import ping3
 import pymysql
@@ -19,7 +21,7 @@ handler.setFormatter(formatter)
 app.logger.addHandler(handler)
 
 # Set the logging level (you can adjust this based on your needs)
-app.logger.setLevel(logging.INFO)
+app.logger.setLevel(logging.DEBUG)
 
 # Load environment variables from the .env file
 app.logger.info(f"Loading environment variables from .env file {os.getenv('ENVIRONMENT')}")
@@ -87,8 +89,6 @@ def after_request(response):
 
 
 def create_mysql_connection(ssh_ip, mysql_host, query):
-    # Creates a MySQL connection by establishing an SSH tunnel and connecting to the MySQL server.
-
     print(f"Connecting to {ssh_ip} and forwarding to {mysql_host}")
     try:
         with SSHTunnelForwarder(
@@ -96,7 +96,9 @@ def create_mysql_connection(ssh_ip, mysql_host, query):
                 ssh_username=MYSQL_USER,
                 ssh_pkey=paramiko.RSAKey.from_private_key_file(ssh_key_path),
                 remote_bind_address=(manager_ip, MYSQL_DEFAULT_PORT)
-        ):
+        ) as tunnel:
+            app.logger.debug("SSH tunnel established successfully.")
+
             conn = pymysql.connect(
                 host=manager_ip,
                 port=MYSQL_DEFAULT_PORT,
@@ -104,16 +106,30 @@ def create_mysql_connection(ssh_ip, mysql_host, query):
                 password=MYSQL_PASSWORD,
                 database=MYSQL_DB,
             )
-            app.logger.debug("Connection successful!")
+            if conn is None:
+                app.logger.error("Failed to establish MySQL connection.")
+                return
+
+            app.logger.debug("MySQL connection successful.")
+            app.logger.debug(query)
             cursor = conn.cursor()
             cursor.execute(query)
+
+            conn.commit()
             results = cursor.fetchall()
+            if results is None:
+                app.logger.error("Query returned no results.")
+                return
 
-            for result in results:
-                print(result)
+            app.logger.debug(f"Results fetched: {results}")
 
-            columns = [column[0] for column in cursor.description]
-            return [dict(zip(columns, row)) for row in results]
+            if cursor.description is not None:
+                app.logger.error("Cursor description is None.")
+                columns = [column[0] for column in cursor.description]
+                return [dict(zip(columns, row)) for row in results]
+
+            return []
+
     except pymysql.Error as e:
         app.logger.error(f"Error: {str(e)}")
 
@@ -149,11 +165,11 @@ def process_query_put():
 def execute_query(method_type, query):
     try:
         if method_type == 'direct':
-            result = direct_mysql_connection(query)
+            result = direct_mysql_connection(unquote(query))
         elif method_type == 'random':
-            result = random_node(query)
+            result = random_node(unquote(query))
         elif method_type == 'custom':
-            result = customized_hit(query)
+            result = customized_hit(unquote(query))
         else:
             return jsonify({'error': f'Invalid method type: {method_type}'})
 
