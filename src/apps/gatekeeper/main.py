@@ -16,8 +16,8 @@ formatter = logging.Formatter('%(asctime)s [%(levelname)s] - %(message)s')
 handler.setFormatter(formatter)
 app.logger.addHandler(handler)
 
-# Set the logging level (you can adjust this based on your needs)
-app.logger.setLevel(logging.debug)
+# Set the logging level
+app.logger.setLevel(logging.DEBUG)
 
 # Load environment variables from the .env file
 app.logger.info(f"Loading environment variables from .env file {os.getenv('ENVIRONMENT')}")
@@ -33,11 +33,6 @@ app.logger.info(
     ''')
 
 
-def sanitize(value):
-    print(value)
-    pass
-
-
 @app.before_request
 def log_request_info():
     timestamp = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
@@ -49,9 +44,6 @@ def log_request_info():
         request.scheme,
         request.full_path
     )
-    request_args = request.args.to_dict()
-    for key, value in request_args.items():
-        request_args[key] = sanitize(value)
 
 
 @app.after_request
@@ -107,14 +99,6 @@ def actor_details(actor_id):
     return f"Details of actor {res}"
 
 
-@app.route('/search')
-def search():
-    # Code to perform search based on query parameters
-    query = request.args.get('query')
-    execute_query("direct", query, "GET")
-    return "Search results"
-
-
 @app.route('/customer/<int:customer_id>/rentals')
 def customer_rentals(customer_id):
     # Code to fetch and list rentals for the specified customer
@@ -123,21 +107,10 @@ def customer_rentals(customer_id):
     return f"Rentals for customer {customer_id}"
 
 
-@app.route('/add_film', methods=['POST'])
-def add_movie():
-    # Code to add a new movie to the database
-    query = request.args.get('query')
-    print(query)
-    res = execute_query("direct", query, "POST")
-    print(query, f"res:{res}")
-    return res
-
-
 @app.route('/raw', methods=['GET', 'POST', 'PUT', 'DELETE'])
 def raw():
     # Code to send a raw request to the trusted host
     query = request.args.get('query')
-    query.sanitize()
     execute_query("direct", query, "GET")
     return "Raw request"
 
@@ -145,7 +118,8 @@ def raw():
 def execute_query(method_type, query, method):
     try:
         encoded_query = quote(query)
-        url = f'http://{trusted_host_ip}/new_request?method_type={method_type}&query={encoded_query}'
+        method_url = f"?method_type={method_type}&" if method_type else "?"
+        url = f'http://{trusted_host_ip}/new_request{method_url}&query={encoded_query}'
         print(url, encoded_query)
 
         headers = {'Content-Type': 'application/json'}
