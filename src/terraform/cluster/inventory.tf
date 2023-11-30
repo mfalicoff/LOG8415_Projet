@@ -4,6 +4,13 @@ resource "local_sensitive_file" "private_key" {
   file_permission   = "0400"
 }
 
+resource "local_file" "ansible_cfg" {
+  content = templatefile("templates/ansible.cfg.tftpl", {
+    inventory = local_file.ansible_inventory.filename
+  })
+  filename = format("%s/%s/playbooks/%s", abspath(path.root), "ansible", "ansible.cfg")
+}
+
 resource "local_file" "ansible_inventory" {
   content = templatefile("templates/inventory.tftpl", {
     manager_ip_addrs_public = [aws_instance.cluster_manager.public_ip]

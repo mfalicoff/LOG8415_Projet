@@ -31,6 +31,7 @@ if os.getenv("ENVIRONMENT") == "production":
 else:
     load_dotenv(".env.local")
 
+
 cloudwatch = boto3.client('cloudwatch', region_name='us-east-1')
 
 # Define constants

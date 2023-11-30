@@ -1,16 +1,18 @@
 - hosts: aws_ec2_trusted_host
   become: yes
+  vars:
+    project_root: "{{ playbook_dir }}/../../../../.."
+
   tasks:
     - name: Update and upgrade packages
       apt:
         update_cache: yes
         upgrade: yes
 
-    - name: Copy trusted host app (debug)
+    - name: Copy env key to trusted_host
       ansible.builtin.copy:
-        src: "/Users/mazilious/git/LOG8415_Projet/src/apps/trusted_host/"
+        src: "{{ project_root }}/src/apps/trusted_host/.env"
         dest: "/home/app/"
-        mode: '0777'
 
     - name: Install Packages
       apt:

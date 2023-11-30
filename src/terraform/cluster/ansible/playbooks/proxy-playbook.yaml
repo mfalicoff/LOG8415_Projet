@@ -1,5 +1,9 @@
 - hosts: aws_ec2_proxy
   become: yes
+  vars:
+    project_root: "{{ playbook_dir }}/../../../../.."
+    aws_credentials: "{{ lookup('env','HOME') }}/.aws"
+
   tasks:
     - name: Update and upgrade packages
       apt:
@@ -8,13 +12,18 @@
 
     - name: Copy ssh key to proxy
       ansible.builtin.copy:
-        src: "/Users/mazilious/git/LOG8415_Projet/src/terraform/cluster/.ssh"
+        src: "{{ project_root }}/src/terraform/cluster/.ssh"
         dest: "/home/app/"
 
     - name: Copy env key to proxy
       ansible.builtin.copy:
-        src: "/Users/mazilious/git/LOG8415_Projet/src/apps/proxy/.env.remote"
+        src: "{{ project_root }}/src/apps/proxy/.env.remote"
         dest: "/home/app/"
+
+    - name: Copy Aws credentials
+      ansible.builtin.copy:
+        src: "{{ aws_credentials }}"
+        dest: "/home/ubuntu/"
 
     - name: Install Packages
       apt:
@@ -55,6 +64,7 @@
         groups: docker
         append: yes
 
+
     - name: Run Docker container
       docker_container:
           name: mf-proxy
@@ -65,6 +75,7 @@
           - "/home/app/.ssh:/app/.ssh"
           - "/home/app/.env.remote:/app/.env.remote"
           - "/home/app/logs/:/app/logs/"
+          - "/home/ubuntu/.aws:/root/.aws"
           restart_policy: always
           state: started
 
