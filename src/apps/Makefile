@@ -1,5 +1,12 @@
 SHELL: /bin/bash
 
+.PHONY: proxy trusted_host gatekeeper push-all push-proxy push trusted_host gatekeeper
+
+push-all:
+	@echo "Pushing all images to CR..."
+	@$(MAKE) push-proxy
+	@$(MAKE) trusted_host
+
 push-proxy:
 	@echo "Pushing proxy image to CR..."
 	@cd ./proxy && \

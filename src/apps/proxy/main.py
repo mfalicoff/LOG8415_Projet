@@ -163,6 +163,7 @@ def process_query():
         app.logger.debug(f"Selected node: {selected_node}")
         return execute_query(selected_node, query)
     else:
+        # Query specified a method_type, route based on method_type
         return execute_query_with_method(method_type, query)
 
 
@@ -184,16 +185,20 @@ def execute_query(node, query):
 
 
 def execute_query_with_method(method_type, query):
-    print(method_type)
     try:
-        if method_type == 'direct':
-            result = direct_mysql_connection(unquote(query))
-        elif method_type == 'random':
-            result = random_node(unquote(query))
-        elif method_type == 'custom':
-            result = customized_hit(unquote(query))
+        # if is a read query, route based on method_type
+        if is_read_query(unquote(query)):
+            if method_type == 'direct':
+                result = direct_mysql_connection(unquote(query))
+            elif method_type == 'random':
+                result = random_node(unquote(query))
+            elif method_type == 'custom':
+                result = customized_hit(unquote(query))
+            else:
+                return jsonify({'error': f'Invalid method type: {method_type}'})
         else:
-            return jsonify({'error': f'Invalid method type: {method_type}'})
+            # if is a write query, route to the manager node
+            result = direct_mysql_connection(unquote(query))
 
         return jsonify({'result': result})
     except Exception as e:
