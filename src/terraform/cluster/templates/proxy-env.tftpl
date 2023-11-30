@@ -16,6 +16,11 @@ MANAGER_PRIVATE_IP=${addr}
 WORKER${index+1}_PUBLIC_IP=${addr}
 %{ endfor ~}
 
+# Workers Instance ID
+%{ for index, id in workers_instance_ids ~}
+WORKER${index+1}_INSTANCE_ID=${id}
+%{ endfor ~}
+
 # SSH Key Location
 SSH_KEY_LOCATION=${ssh_keyfile}
 
