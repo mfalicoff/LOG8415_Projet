@@ -73,6 +73,7 @@ configure-cluster:
 	@$(MAKE) configure-cluster-worker
 	@$(MAKE) configure-cluster-proxy
 	@$(MAKE) configure-cluster-trusted_host
+	@$(MAKE) configure-cluster-gatekeeper
 
 configure-cluster-manager:
 	@echo "Configuring manager MySQL instance with ansible..."

@@ -24,7 +24,7 @@ app.logger.info(f"Loading environment variables from .env file {os.getenv('ENVIR
 load_dotenv(".env")
 
 # Access environment variables
-trusted_host_ip = os.getenv("TRUSTED_HOST_PUBLIC_IP")
+trusted_host_ip = os.getenv("TRUSTED_HOST_PRIVATE_IP")
 
 app.logger.info(
     f'''
@@ -69,9 +69,9 @@ def home():
 @app.route('/film')
 def list_movies():
     # Code to fetch and return all movies from the database
+    method_type = request.args.get('method_type')
     query = "SELECT * FROM film"
-    res = execute_query("direct", query, "GET")
-    print(res)
+    res = execute_query(method_type, query, "GET")
     return res
 
 
@@ -79,48 +79,52 @@ def list_movies():
 def movie_details(movie_id):
     # Code to fetch and return details of the specified movie
     query = f"SELECT * FROM movies WHERE id={movie_id}"
-    execute_query("direct", query, "GET")
-    return f"Details of movie {movie_id}"
+    method_type = request.args.get('method_type')
+    res = execute_query(method_type, query, "GET")
+    return res
 
 
-@app.route('/actors')
+@app.route('/actors', methods=['GET'])
 def list_actors():
     # Code to fetch and return all actors from the database
-    query = "SELECT * FROM actors"
-    execute_query("direct", query, "GET")
-    return "List of all actors"
+    method_type = request.args.get('method_type')
+    query = "SELECT * FROM actor"
+    res = execute_query(method_type, query, "GET")
+    return res
 
 
-@app.route('/actor/<int:actor_id>')
+@app.route('/actor/<int:actor_id>', methods=['GET'])
 def actor_details(actor_id):
     # Code to fetch and return details of the specified actor
+    method_type = request.args.get('method_type')
     query = f"SELECT * FROM actor WHERE actor_id={actor_id}"
-    res = execute_query("direct", query, "GET")
-    return f"Details of actor {res}"
+    res = execute_query(method_type, query, "GET")
+    return res
 
 
-@app.route('/customer/<int:customer_id>/rentals')
+@app.route('/customer/<int:customer_id>/rentals', methods=['GET'])
 def customer_rentals(customer_id):
     # Code to fetch and list rentals for the specified customer
+    method_type = request.args.get('method_type')
     query = f"SELECT * FROM rentals WHERE customer_id={customer_id}"
-    execute_query("direct", query, "GET")
-    return f"Rentals for customer {customer_id}"
+    res = execute_query(method_type, query, "GET")
+    return res
 
 
 @app.route('/raw', methods=['GET', 'POST', 'PUT', 'DELETE'])
 def raw():
     # Code to send a raw request to the trusted host
     query = request.args.get('query')
-    execute_query("direct", query, "GET")
-    return "Raw request"
+    method_type = request.args.get('method_type')
+    res = execute_query(method_type, query, request.method)
+    return res
 
 
 def execute_query(method_type, query, method):
     try:
         encoded_query = quote(query)
         method_url = f"?method_type={method_type}&" if method_type else "?"
-        url = f'http://{trusted_host_ip}/new_request{method_url}&query={encoded_query}'
-        print(url, encoded_query)
+        url = f'http://{trusted_host_ip}/new_request{method_url}query={encoded_query}'
 
         headers = {'Content-Type': 'application/json'}
 

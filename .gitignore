@@ -22,3 +22,5 @@
 **/logs/
 
 *.env
+
+src/terraform/cluster/ansible/playbooks/ansible.cfg

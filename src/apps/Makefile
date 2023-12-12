@@ -25,7 +25,7 @@ push trusted_host:
 	@cd ../terraform && \
 		make configure-cluster-trusted_host
 
-push gatekeeper:
+push-gatekeeper:
 	@echo "Pushing gatekeeper image to CR..."
 	@cd ./gatekeeper && \
 		docker buildx create --use  && \
