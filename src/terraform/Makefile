@@ -70,9 +70,9 @@ create-cluster:
 configure-cluster:
 	@echo "Configuring MySQL cluster with ansible..."
 	@$(MAKE) configure-cluster-manager
-	@$(MAKE) configure-cluster-worker
-	@$(MAKE) configure-cluster-proxy
-	@$(MAKE) configure-cluster-trusted_host
+	@$(MAKE) configure-cluster-worker &
+	@$(MAKE) configure-cluster-proxy &
+	@$(MAKE) configure-cluster-trusted_host &
 	@$(MAKE) configure-cluster-gatekeeper
 
 configure-cluster-manager:
