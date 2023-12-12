@@ -6,7 +6,7 @@
         update_cache: yes
         upgrade: yes
 
-    - name: Copy trusted host app (debug)
+    - name: Copy gatekeeper host app (debug)
       ansible.builtin.copy:
         src: "/Users/mazilious/git/LOG8415_Projet/src/apps/gatekeeper/"
         dest: "/home/app/"

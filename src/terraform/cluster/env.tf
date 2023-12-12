@@ -37,3 +37,10 @@ resource "local_file" "gatekeeper_env" {
   })
   filename = "../../apps/gatekeeper/.env"
 }
+
+resource "local_file" "client_env" {
+  content = templatefile("templates/client-env.tftpl", {
+    gatekeeper_addrs_public = [aws_instance.gatekeeper.public_ip]
+  })
+  filename = "../../apps/client/.env"
+}
