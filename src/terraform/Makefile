@@ -69,6 +69,7 @@ create-cluster:
 
 configure-cluster:
 	@echo "Configuring MySQL cluster with ansible..."
+	@export ANSIBLE_HOST_KEY_CHECKING=False
 	@$(MAKE) configure-cluster-manager
 	@$(MAKE) configure-cluster-worker &
 	@$(MAKE) configure-cluster-proxy &
