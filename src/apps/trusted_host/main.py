@@ -17,14 +17,11 @@ formatter = logging.Formatter('%(asctime)s [%(levelname)s] - %(message)s')
 handler.setFormatter(formatter)
 app.logger.addHandler(handler)
 
-# Set the logging level (you can adjust this based on your needs)
 app.logger.setLevel(logging.INFO)
 
-# Load environment variables from the .env file
 app.logger.info(f"Loading environment variables from .env file {os.getenv('ENVIRONMENT')}")
 load_dotenv(".env")
 
-# Access environment variables
 proxy_ip = os.getenv("PROXY_PRIVATE_IP")
 
 app.logger.info(
@@ -115,18 +112,17 @@ def is_safe_sql(query):
 
     # Basic check for SQL injection patterns
     sql_injection_patterns = [
-        r'--',  # SQL comment
-        r';',  # Multiple queries
-        r'\/\*',  # Block comment
-        r'\bOR\b',  # OR condition
-        r'\bAND\b',  # AND condition
+        r'--',
+        r';',
+        r'\/\*',
+        r'\bOR\b',
+        r'\bAND\b',
     ]
 
     for pattern in sql_injection_patterns:
         if re.search(pattern, query_lower):
             return False
 
-    # If the query passed all checks, it is considered safe
     return True
 
 
