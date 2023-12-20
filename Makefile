@@ -3,6 +3,10 @@ SHELL := /bin/bash
 TERRAFORM := terraform
 ANSIBLE := ansible-playbook
 WAIT := sleep 60
+CD_TERRAFORM := cd src/terraform
+CD_CLUSTER := cd src/terraform/cluster
+CD_STANDALONE := cd src/terraform/standalone
+
 
 .PHONY: cluster standalone cluster-destroy standalone-destroy benchmark
 
@@ -16,14 +20,14 @@ cluster-redeploy: cluster-destroy
 
 cluster-destroy:
 	@echo "Destroying MySQL cluster..."
-	@cd ./cluster && \
+	$(CD_CLUSTER) && \
 		$(TERRAFORM) destroy -auto-approve
 
 standalone: create-standalone
 
 standalone-destroy:
 	@echo "Destroying standalone MySQL instance..."
-	@cd ./standalone && \
+	$(CD_STANDALONE) && \
 		$(TERRAFORM) destroy -auto-approve
 
 standalone-redeploy:
@@ -52,13 +56,13 @@ apply-standalone:
 	$(call apply,standalone)
 
 output-cluster:
-	@cd ./cluster && \
+	$(CD_CLUSTER) && \
 		$(TERRAFORM) output
 
 # Sub commands
 create-cluster:
 	@echo "Creating MySQL cluster..."
-	@cd ./cluster && \
+	$(CD_CLUSTER) && \
 		$(TERRAFORM) init && \
 		$(TERRAFORM) plan && \
 		$(TERRAFORM) apply -auto-approve
@@ -70,37 +74,39 @@ create-cluster:
 configure-cluster:
 	@echo "Configuring MySQL cluster with ansible..."
 	@$(MAKE) configure-cluster-manager
-	@$(MAKE) configure-cluster-worker
-	@$(MAKE) configure-cluster-proxy
-	@$(MAKE) configure-cluster-trusted_host
+	@for task in configure-cluster-worker configure-cluster-proxy configure-cluster-trusted_host configure-cluster-gatekeeper; do \
+		$(MAKE) $$task & \
+	done; \
+	wait
 
 configure-cluster-manager:
 	@echo "Configuring manager MySQL instance with ansible..."
-	@cd ./cluster && \
+	$(CD_CLUSTER) && \
 		$(ANSIBLE) -i ./ansible/inventory.ini ./ansible/playbooks/manager-playbook.yaml
 
 configure-cluster-worker:
 	@echo "Configuring workers MySQL instance with ansible..."
-	@cd ./cluster && \
+	$(CD_CLUSTER) && \
 		$(ANSIBLE) -i ./ansible/inventory.ini ./ansible/playbooks/worker-playbook.yaml
 
 configure-cluster-proxy:
 	@echo "Configuring proxy instance with ansible..."
-	@cd ../apps/proxy && \
-		pip freeze > requirements.txt
-	@cd ./cluster && \
+	$(CD_CLUSTER) && \
 		$(ANSIBLE) -i ./ansible/inventory.ini ./ansible/playbooks/proxy-playbook.yaml
 
 configure-cluster-trusted_host:
 	@echo "Configuring trusted host instance with ansible..."
-	@cd ../apps/trusted_host && \
-		pip freeze > requirements.txt
-	@cd ./cluster && \
+	$(CD_CLUSTER) && \
 		$(ANSIBLE) -i ./ansible/inventory.ini ./ansible/playbooks/trusted_host-playbook.yaml
+
+configure-cluster-gatekeeper:
+	@echo "Configuring gatekeeper instance with ansible..."
+	$(CD_CLUSTER) && \
+		$(ANSIBLE) -i ./ansible/inventory.ini ./ansible/playbooks/gatekeeper-playbook.yaml
 
 create-standalone:
 	@echo "Creating standalone MySQL instance..."
-	@cd ./standalone && \
+	$(CD_STANDALONE) && \
 		$(TERRAFORM) init && \
 		$(TERRAFORM) plan && \
 		$(TERRAFORM) apply -auto-approve
@@ -111,24 +117,30 @@ create-standalone:
 
 configure-standalone:
 	@echo "Configuring MySQL instance with ansible..."
-	@cd ./standalone && \
+	$(CD_STANDALONE) && \
 		$(ANSIBLE) -i ./ansible/inventory.ini ./ansible/playbooks/playbook.yaml
+
+release:
+	zip -r release_2013658.zip src
 
 # Helper functions
 
 define run-benchmark
 	@echo "Running benchmark on $1..."
-	@cd ./$1 && \
+	$(CD_TERRAFORM) && \
+	cd ./$1 && \
 		$(ANSIBLE) -i ./ansible/inventory.ini ./ansible/playbooks/benchmark-playbook.yaml
 endef
 
 define plan
-	@cd ./$1 && \
+	$(CD_TERRAFORM) && \
+	cd ./$1 && \
 		$(TERRAFORM) init && \
 		$(TERRAFORM) plan
 endef
 
 define apply
-	@cd ./$1 && \
+	$(CD_TERRAFORM) && \
+	cd ./$1 && \
 		$(TERRAFORM) apply
 endef

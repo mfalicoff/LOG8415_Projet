@@ -1,18 +1,16 @@
-- hosts: aws_ec2_trusted_host
+- hosts: aws_ec2_gatekeeper
   become: yes
-  vars:
-    project_root: "{{ playbook_dir }}/../../../../.."
-
   tasks:
     - name: Update and upgrade packages
       apt:
         update_cache: yes
         upgrade: yes
 
-    - name: Copy env key to trusted_host
+    - name: Copy gatekeeper host app (debug)
       ansible.builtin.copy:
-        src: "{{ project_root }}/src/apps/trusted_host/.env"
+        src: "/Users/mazilious/git/LOG8415_Projet/src/apps/gatekeeper/"
         dest: "/home/app/"
+        mode: '0777'
 
     - name: Install Packages
       apt:
@@ -55,8 +53,8 @@
 
     - name: Run Docker container
       docker_container:
-          name: mf-trusted-host
-          image: mazil007/mf-trusted_host:latest
+          name: mf-gatekeeper
+          image: mazil007/mf-gatekeeper:latest
           pull: yes
           network_mode: host
           volumes:

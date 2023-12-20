@@ -1,5 +1,7 @@
 - hosts: aws_ec2_manager
   become: yes
+  vars:
+    project_root: "{{ playbook_dir }}/../../../../.."
 
   tasks:
     - name: Prepare statement with sysbench
@@ -14,6 +16,6 @@
     - name: Fetch testbench result log to local machine
       fetch:
         src: "/home/shared/cluster-result.log"
-        dest: "/Users/mazilious/git/LOG8415_Projet/src/terraform/benchmarks/"
+        dest: "{{ project_root }}/src/terraform/benchmarks/"
         flat: yes
 

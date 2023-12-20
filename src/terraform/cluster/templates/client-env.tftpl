@@ -1,0 +1,5 @@
+# Gatekeeper IP
+%{ for index, addr in gatekeeper_addrs_public ~}
+GATEKEEPER_PUBLIC_IP=${addr}
+%{ endfor ~}
+

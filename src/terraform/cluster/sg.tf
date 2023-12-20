@@ -1,21 +1,58 @@
-resource "aws_security_group" "trusted_host" {
-  name        = "trusted_host"
+resource "aws_security_group" "gatekeeper" {
+  name        = "gatekeeper"
   description = "Allow inbound HTTP traffic from the broad internet"
   vpc_id      = data.aws_vpc.cluster-default.id
 }
 
-# Allow HTTP traffic from the broad internet to reach the ALB
-resource "aws_security_group_rule" "trusted_host_ingress" {
+# Allow HTTP traffic from the broad internet to reach the gatekeeper
+resource "aws_security_group_rule" "gatekeeper_ingress" {
   type              = "ingress"
   from_port         = 80
   to_port           = 80
   protocol          = "tcp"
   cidr_blocks       = ["0.0.0.0/0"]
   ipv6_cidr_blocks  = ["::/0"]
-  security_group_id = aws_security_group.trusted_host.id
+  security_group_id = aws_security_group.gatekeeper.id
 }
 
-# Allow HTTP traffic from the load balancer to EC2 instances
+# Allow HTTP traffic to exit the gatekeeper
+resource "aws_security_group_rule" "gatekeeper_egress" {
+  type              = "egress"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
+  cidr_blocks       = ["0.0.0.0/0"]
+  ipv6_cidr_blocks  = ["::/0"]
+  security_group_id = aws_security_group.gatekeeper.id
+}
+
+# Allow SSH traffic to the gatekeeper
+ resource "aws_security_group_rule" "gatekeeper_ssh" {
+   type              = "ingress"
+   from_port         = 22
+   to_port           = 22
+   protocol          = "tcp"
+   cidr_blocks       = ["0.0.0.0/0"]
+   security_group_id = aws_security_group.gatekeeper.id
+ }
+
+resource "aws_security_group" "trusted_host" {
+  name        = "trusted_host"
+  description = "Allow inbound HTTP traffic from the broad internet"
+  vpc_id      = data.aws_vpc.cluster-default.id
+}
+
+# Allow HTTP traffic from the gatekeeper to the trusted host
+resource "aws_security_group_rule" "trusted_host_ingress" {
+  type                     = "ingress"
+  from_port                = 80
+  to_port                  = 80
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.trusted_host.id
+  source_security_group_id = aws_security_group.gatekeeper.id
+}
+
+# Allow HTTP traffic to exit the trusted host
 resource "aws_security_group_rule" "trusted_host_egress" {
   type              = "egress"
   from_port         = 0
@@ -23,9 +60,10 @@ resource "aws_security_group_rule" "trusted_host_egress" {
   protocol          = "-1"
   cidr_blocks       = ["0.0.0.0/0"]
   ipv6_cidr_blocks  = ["::/0"]
-  security_group_id        = aws_security_group.trusted_host.id
+  security_group_id = aws_security_group.trusted_host.id
 }
 
+# Allow SSH traffic to the trusted host
  resource "aws_security_group_rule" "trusted_host_ssh" {
    type              = "ingress"
    from_port         = 22
@@ -35,36 +73,23 @@ resource "aws_security_group_rule" "trusted_host_egress" {
    security_group_id = aws_security_group.trusted_host.id
  }
 
-
 resource "aws_security_group" "proxy" {
   name        = "proxy"
   description = "Allow inbound HTTP traffic from the broad internet"
   vpc_id      = data.aws_vpc.cluster-default.id
 }
 
-# Allow HTTP traffic from the broad internet to reach the ALB
-# TODO REMOVE THIS
-#resource "aws_security_group_rule" "proxy_ingress" {
-#  type              = "ingress"
-#  from_port         = 80
-#  to_port           = 80
-#  protocol          = "tcp"
-#  cidr_blocks       = ["0.0.0.0/0"]
-#  ipv6_cidr_blocks  = ["::/0"]
-#  security_group_id = aws_security_group.proxy.id
-#}
-
-# TODO replace with this
+# Allow HTTP traffic from the trusted host to the proxy
 resource "aws_security_group_rule" "proxy_ingress" {
-  type              = "ingress"
-  from_port         = 0
-  to_port           = 0
-  protocol          = "-1"
-  security_group_id = aws_security_group.proxy.id
-  source_security_group_id = aws_security_group.trusted_host.id
+  type                      = "ingress"
+  from_port                 = 0
+  to_port                   = 0
+  protocol                  = "-1"
+  security_group_id         = aws_security_group.proxy.id
+  source_security_group_id  = aws_security_group.trusted_host.id
 }
 
-# Allow HTTP traffic from the load balancer to EC2 instances
+# Allow HTTP traffic to exit the proxy
 resource "aws_security_group_rule" "proxy_egress" {
   type              = "egress"
   from_port         = 0
@@ -72,9 +97,10 @@ resource "aws_security_group_rule" "proxy_egress" {
   protocol          = "-1"
   cidr_blocks       = ["0.0.0.0/0"]
   ipv6_cidr_blocks  = ["::/0"]
-  security_group_id        = aws_security_group.proxy.id
+  security_group_id = aws_security_group.proxy.id
 }
 
+# Allow SSH traffic to the proxy
  resource "aws_security_group_rule" "proxy_ssh" {
    type              = "ingress"
    from_port         = 22
@@ -92,12 +118,12 @@ resource "aws_security_group" "cluster" {
 
 # Allow HTTP traffic from the Proxy to the cluster
 resource "aws_security_group_rule" "cluster_ingress" {
-  type              = "ingress"
-  from_port         = 0
-  to_port           = 0
-  protocol          = "-1"
-  security_group_id = aws_security_group.cluster.id
-  source_security_group_id = aws_security_group.proxy.id
+  type                      = "ingress"
+  from_port                 = 0
+  to_port                   = 0
+  protocol                  = "-1"
+  security_group_id         = aws_security_group.cluster.id
+  source_security_group_id  = aws_security_group.proxy.id
 }
 
 # Allow HTTP traffic from the cluster to the cluster

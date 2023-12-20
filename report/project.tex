@@ -3,12 +3,13 @@
 \usepackage[english]{babel}
 \usepackage{fullpage}
 \usepackage{graphicx}
+\usepackage{float}
 \def\titre{}
 \def\auteur{}
 \def\courriel{}
 \makeatletter
 
-\title{LOG8415\\Advanced Concepts of Cloud Computing\\Lab 2}
+\title{LOG8415\\Advanced Concepts of Cloud Computing\\Project}
 
 \author{
     Amin Nikanjam \\
@@ -24,21 +25,15 @@
 
 \section{Identification}
 
-\paragraph{Students name:} 
-\begin{itemize}
-	\item Maximiliano Falicoff
-	\item Corentin Glaus
-	\item Aymeric Labrie
-	\item William Trépanier
-
-\end{itemize}
+\paragraph{Students name:} Maximiliano Falicoff 2013658
 \auteur
 
 \paragraph{Date of submission:} Saturday November 11^{th} \; 2023
 
-\section{test}
+\section{Benchmarks}
+\subsection{Standalone}
 
-\begin{table}[h!]
+\begin{table}[H]
 \centering
 \begin{tabular}{ l r }
 \hline
@@ -63,7 +58,9 @@ execution time (avg/stddev) & 60.0016/0.00 \\
 \label{tab:table1}
 \end{table}
 
-\begin{table}[h!]
+\subsection{Cluster}
+
+\begin{table}[H]
 \centering
 \begin{tabular}{ l r }
 \hline
@@ -87,4 +84,87 @@ execution time (avg/stddev) & 60.0016/0.00 \\
 \caption{SQL statistics and General statistics}
 \label{tab:table1}
 \end{table}
+
+\section{Proxy Implementation}
+
+When a request arrives to the proxy, it carries a raw SQL query. For monitoring purposes, we log the request's details, including its type and origin. The core of the process lies in how the application handles this SQL query. If the request does not specify a method type and is a read operation (like a 'SELECT' query), the application selects the best node to execute the query. This selection is based on the current load of the available nodes, ensuring efficient distribution of read requests. In order to check the lowest load, we iterate through all instance id's and check the cpu load and pick the lowest one.
+\newline
+
+In cases where the request specifies a method type or if the query is a write operation (anything other than 'SELECT' or 'SHOW'), the application routes it differently. For example, a write operation is always directed to the manager node for execution, ensuring data consistency and integrity. We support the following methods: 
+\begin{itemize}
+	\item direct: connect directly to the manager ip, like a write query
+	\item random: we select a random node from the manager to all the workers
+	\item custom: get get the ping from each worker and select the lowest one
+\end{itemize}
+\newline
+
+The application uses SSH tunnels for secure communication with the database nodes. Once the appropriate node is selected, it establishes a connection, executes the query, and fetches the results. These results are then returned to the requester. The application also logs the outcome of the request, which includes details about the query execution and its results.
+
+\section{Gatekeeper Implementation}
+The gatekeeper pattern has two nodes. The first node acts as our API endpoint where we define some routes that are publicly available, in our case we defined the following routes:
+\begin{itemize}
+	\item /film Returns all the films
+	\item /movie/$<$id$>$ Returns movie with the specified id
+	\item /actors Returns all the actors
+	\item /actor/$<$id$>$ Returns actors with specified id
+	\item /customer/$<$customerId$>$/rentals Returns list of rentals for a specific customer
+	\item /raw Send a raw SQL query
+\end{itemize}
+
+\newline
+Each request can have a additional query parameter being the method type: custom, random, direct, but these are only valid for read queries and will be ignored if it's a write query since it be forwarded to the master.
+
+\noindent
+These endpoints are then converted to raw SQL queries and are forwarded to our trusted host. In our security groups, the trusted host can only be accessed by a traffic source originating from the gatekeeper, so.a client would not be able to contact the trusted host directly.
+\newline
+
+The trusted host acts as a filter for malicious or faulty queries, we defined a method where we check if the query respects our rules. We have defined the following rules:
+\begin{itemize}
+    \item Define a list of allowed tables for \texttt{INSERT}, \texttt{UPDATE}, and \texttt{DELETE} operations. These tables include: \texttt{actor}, \texttt{address}, \texttt{category}, \texttt{city}, \texttt{country}, \texttt{customer}, \texttt{film}, \texttt{film\_actor}, \texttt{film\_category}, \texttt{film\_text}, \texttt{inventory}, \texttt{language}, \texttt{payment}, \texttt{rental}, \texttt{staff}, and \texttt{store}.
+    \item Check for the presence of forbidden keywords in the query, excluding \texttt{INSERT}, \texttt{UPDATE}, and \texttt{DELETE}. Forbidden keywords include \texttt{drop}, \texttt{exec}, \texttt{execute}, \texttt{create}, \texttt{alter}, \texttt{grant}, \texttt{revoke}, and \texttt{truncate}. If any of these are present, the query is considered unsafe.
+    \item If the operation is \texttt{INSERT}, \texttt{UPDATE}, or \texttt{DELETE}, check if it is performed on an allowed table. Use a regular expression to extract the table name and verify if it's in the list of allowed tables.
+    \item Perform a basic check for SQL injection patterns. Look for patterns like \texttt{--}, \texttt{;}, \texttt{/\*}, \texttt{\textbackslash bOR\textbackslash b}, and \texttt{\textbackslash bAND\textbackslash b}. If any of these patterns are found, the query is considered unsafe.
+    \item If none of the above conditions are met, the query is considered safe.
+\end{itemize}
+If the query satisfies all the rules, it will then be forwarded to the proxy.
+\newline
+
+In order to deploy these nodes, I have defined a GitHub workflow so that when changes are made to their respectful directories, a docker image will be created and published to a docker registry. In our ansible playbook, we install docker and start the service and pull the image from the repository and start the image.
+
+\section{Overall Implementation}
+In terms of deploying the entire stack the flows is as follows:
+\newline
+
+The docker images for the proxy, trusted host and gatekeeper are automatically built by the github CI pipeline and pushed to a registry.
+
+Our terraform configuration will deploy our ec2 instances with their respective security groups so that trust boundaries are set, for example myself from my local computer would not be able to contact anything except the gatekeeper. Our terraform configuration will also generate all .env files needed for our docker images, we also generate a ssh key to be able to connect to our machines and aansible inventory file that has all ip's of our machine that we need to configure.
+
+We then run our ansible playbook for our cluster manager first since I encountered error when deploying th e workers at the same time. Our manager will be setup using ansible. Once the manager is setup, we can parallelize the setup of the workers, the proxy , the trusted host and the gatekeeper to speed up the deployment time. In our ansible playbooks for the workers, we setup the mysql cluster management server Dameon pointing to our master's IP. For our docker based systems, ansible will install docker mount the env perviously generated and start the containers.
+
+All of this can be done with a single command with no further intervention (see below for instructions)
+
+\section{Summary}
+
+\section{How to deploy}
+\subsection{Requirements}
+In order to deploy the project you need the following packages to be installed and make sure they are added to the PATH environment variable:
+
+\begin{itemize}
+	\item terraform
+	\item aws-cli
+	\item ansible
+	\item make
+\end{itemize}
+
+\newline
+\noindent
+You then need to populate your aws\_credentials with the correct credentials.
+
+\subsection{Scripts available}
+Depending on what you want to deploy, there are a few commands available there is a makefile with all the commands available, here are the important ones:
+\begin{itemize}
+	\item \textit{make cluster-deploy} will deploy everything, meaning the gatekeeper, trusted host, the proxy and the mysql cluster (manager + worker), it will then configure them using ansible, this may take a bit of time due to the fact that the manager must be deployed before the workers. Afterwards everything should be deployed.
+	\item \textit{make benchmark} will deploy the standalone instance benchmark it, destroy the instance, then do the same for the cluster, during the after each benchmark the results are copied to a local folder.
+\end{itemize}
+
 \end{document}

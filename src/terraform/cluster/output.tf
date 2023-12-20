@@ -31,3 +31,11 @@ output "trusted-data" {
   }
   description = "The public IP and DNS of the trusted"
 }
+
+output "gatekeeper-data" {
+  value = {
+    ip_address  = aws_instance.gatekeeper.public_ip
+    public_dns = aws_instance.gatekeeper.public_dns
+  }
+  description = "The public IP and DNS of the gatekeeper"
+}
