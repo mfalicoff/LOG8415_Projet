@@ -73,11 +73,13 @@ create-cluster:
 
 configure-cluster:
 	@echo "Configuring MySQL cluster with ansible..."
+	@export ANSIBLE_HOST_KEY_CHECKING=False
 	@$(MAKE) configure-cluster-manager
 	@for task in configure-cluster-worker configure-cluster-proxy configure-cluster-trusted_host configure-cluster-gatekeeper; do \
-		$(MAKE) $$task & \
+		(export ANSIBLE_HOST_KEY_CHECKING=False && $(MAKE) $$task) & \
 	done; \
 	wait
+
 
 configure-cluster-manager:
 	@echo "Configuring manager MySQL instance with ansible..."
